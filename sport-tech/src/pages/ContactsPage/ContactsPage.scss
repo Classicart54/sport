@@ -1,0 +1,143 @@
+// Переменные SCSS для этого файла
+$primary-color: #4a90e2;
+$text-secondary: #777777;
+
+.contacts-page {
+  padding-bottom: 80px;
+
+  &__hero {
+    background: linear-gradient(135deg, $primary-color, darken($primary-color, 20%));
+    color: white;
+    padding: 60px 0;
+    margin-bottom: 50px;
+    text-align: center;
+  }
+
+  &__title {
+    font-size: 36px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  &__subtitle {
+    font-size: 18px;
+    opacity: 0.9;
+  }
+
+  &__content {
+    margin-top: 20px;
+  }
+
+  &__card {
+    border-radius: 10px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+    height: 100%;
+    
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  &__form-card {
+    margin-top: 30px;
+  }
+
+  &__card-title {
+    font-weight: 600;
+    color: $primary-color;
+    margin-bottom: 24px;
+  }
+
+  &__info-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  &__icon {
+    color: $primary-color;
+    margin-right: 16px;
+    margin-top: 4px;
+  }
+
+  &__info-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  &__info-text {
+    color: $text-secondary;
+  }
+
+  &__divider {
+    margin: 24px 0;
+  }
+
+  &__social-title {
+    margin-bottom: 16px;
+  }
+
+  &__social-links {
+    display: flex;
+
+    .MuiIconButton-root {
+      margin-right: 10px;
+      background-color: rgba($primary-color, 0.1);
+      
+      &:hover {
+        background-color: rgba($primary-color, 0.2);
+      }
+    }
+  }
+
+  &__form {
+    margin-top: 16px;
+  }
+
+  &__submit-button {
+    margin-top: 16px;
+    height: 50px;
+  }
+
+  &__map-card {
+    height: calc(100% - 30px);
+  }
+
+  &__map-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__map-container {
+    flex-grow: 1;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  &__map {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+  }
+
+  &__directions {
+    padding-top: 16px;
+  }
+
+  @media (max-width: 768px) {
+    &__hero {
+      padding: 40px 0;
+    }
+
+    &__title {
+      font-size: 28px;
+    }
+
+    &__map {
+      min-height: 300px;
+    }
+  }
+} 

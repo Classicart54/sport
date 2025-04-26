@@ -1,0 +1,126 @@
+.checkout-modal {
+  .MuiDialog-paper {
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  &__title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background-color: #f8f8f8;
+    color: #333;
+    font-weight: 600;
+  }
+  
+  &__close-button {
+    color: #999;
+    
+    &:hover {
+      color: #666;
+    }
+  }
+  
+  &__content {
+    padding: 24px !important;
+  }
+  
+  &__stepper {
+    margin-bottom: 24px;
+  }
+  
+  &__step-content {
+    min-height: 300px;
+  }
+  
+  &__subtitle {
+    font-weight: 600 !important;
+    color: #333;
+    margin-bottom: 16px !important;
+  }
+  
+  &__info {
+    color: #666;
+    margin-bottom: 8px !important;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  &__rental, &__payment, &__delivery {
+    padding: 8px;
+  }
+  
+  &__actions {
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    background-color: #f8f8f8;
+  }
+  
+  &__cancel-button {
+    color: #666 !important;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05) !important;
+    }
+  }
+  
+  &__back-button {
+    margin-right: 8px !important;
+    color: #666 !important;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05) !important;
+    }
+  }
+  
+  &__next-button {
+    background-color: #007bff !important;
+    
+    &:hover {
+      background-color: #0069d9 !important;
+    }
+    
+    &:disabled {
+      background-color: rgba(0, 0, 0, 0.12) !important;
+      color: rgba(0, 0, 0, 0.26) !important;
+    }
+  }
+  
+  &__completed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px 0;
+  }
+  
+  &__success-icon {
+    color: #4caf50;
+    font-size: 72px !important;
+    margin-bottom: 16px;
+  }
+  
+  &__success-title {
+    color: #333;
+    font-weight: 600 !important;
+    margin-bottom: 16px !important;
+  }
+  
+  &__success-text {
+    color: #666;
+    max-width: 80%;
+    margin-bottom: 24px !important;
+  }
+  
+  &__success-button {
+    background-color: #007bff !important;
+    
+    &:hover {
+      background-color: #0069d9 !important;
+    }
+  }
+} 

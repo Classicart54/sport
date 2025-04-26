@@ -1,0 +1,163 @@
+.profile-page {
+  padding: 32px 0;
+  
+  &__header {
+    margin-bottom: 24px;
+  }
+  
+  &__title {
+    font-weight: 600;
+    color: #333;
+  }
+  
+  &__content {
+    margin-top: 24px;
+  }
+  
+  &__tabs-container {
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  &__tabs {
+    background-color: #f8f8f8;
+  }
+  
+  &__tab {
+    text-transform: none;
+    font-weight: 500;
+    
+    &.Mui-selected {
+      color: #007bff;
+    }
+  }
+  
+  &__tab-content {
+    background-color: #fff;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    padding: 24px;
+    min-height: 400px;
+  }
+  
+  &__section-title {
+    margin-bottom: 24px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  // Стили для вкладки заказов
+  &__table-container {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+  }
+  
+  &__no-orders {
+    text-align: center;
+    padding: 48px 0;
+    color: #666;
+  }
+  
+  &__order-row {
+    &:hover {
+      background-color: #f9f9f9;
+    }
+  }
+  
+  &__order-items {
+    max-width: 250px;
+  }
+  
+  &__order-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  &__status-chip {
+    min-width: 80px;
+    justify-content: center;
+  }
+  
+  // Стили для вкладки профиля
+  &__profile-card {
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  &__profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  
+  &__avatar {
+    width: 80px;
+    height: 80px;
+    font-size: 28px;
+    background-color: #007bff;
+  }
+  
+  &__edit-button {
+    color: #007bff;
+    border-color: #007bff;
+    
+    &:hover {
+      background-color: rgba(0, 123, 255, 0.05);
+    }
+  }
+  
+  &__info {
+    padding: 8px 0;
+  }
+  
+  &__info-row {
+    display: flex;
+    margin-bottom: 16px;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  &__info-label {
+    flex: 0 0 100px;
+    color: #666;
+    font-weight: 500;
+  }
+  
+  &__info-value {
+    flex: 1;
+    font-weight: 400;
+  }
+  
+  &__edit-form {
+    margin-top: 16px;
+  }
+  
+  &__action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+  
+  &__cancel-button {
+    margin-right: 12px !important;
+  }
+  
+  &__save-button {
+    background-color: #007bff !important;
+    
+    &:hover {
+      background-color: #0069d9 !important;
+    }
+  }
+} 

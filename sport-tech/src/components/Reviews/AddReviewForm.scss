@@ -1,0 +1,53 @@
+.add-review-form {
+  padding: 24px;
+  margin-bottom: 30px;
+  
+  &__title {
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  
+  &__rating-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  &__rating-label {
+    margin-right: 12px;
+  }
+  
+  &__rating {
+    .MuiRating-iconEmpty {
+      color: rgba(0, 0, 0, 0.15);
+    }
+  }
+  
+  &__text-field {
+    margin-bottom: 20px;
+  }
+  
+  &__submit-button {
+    min-width: 160px;
+    min-height: 42px;
+  }
+  
+  &__login-button {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .add-review-form {
+    padding: 16px;
+    
+    &__rating-container {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    &__rating-label {
+      margin-bottom: 8px;
+    }
+  }
+} 
