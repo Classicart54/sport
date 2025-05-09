@@ -19,7 +19,13 @@ import {
   Stack,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
 import { useOrders } from '../../context/OrderContext';
@@ -27,6 +33,7 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import EditIcon from '@mui/icons-material/Edit';
 import HistoryIcon from '@mui/icons-material/History';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { User } from '../../types/interfaces';
 import './ProfilePage.scss';
 
@@ -63,7 +70,7 @@ const getStatusColor = (status: string): "success" | "error" | "default" | "warn
 
 const ProfilePage: React.FC = () => {
   const { auth, updateProfile } = useAuth();
-  const { getUserOrders } = useOrders(); // Используем контекст заказов
+  const { getUserOrders, updateOrderStatus } = useOrders(); // Используем контекст заказов
   const [activeTab, setActiveTab] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +82,15 @@ const ProfilePage: React.FC = () => {
     open: false,
     message: '',
     severity: 'success'
+  });
+  
+  // Состояние для диалога подтверждения отмены заказа
+  const [cancelDialog, setCancelDialog] = useState<{
+    open: boolean;
+    orderId: number | null;
+  }>({
+    open: false,
+    orderId: null
   });
   
   // Начальные данные пользователя
@@ -98,6 +114,48 @@ const ProfilePage: React.FC = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Открытие диалога подтверждения отмены заказа
+  const handleOpenCancelDialog = (orderId: number) => {
+    setCancelDialog({
+      open: true,
+      orderId
+    });
+  };
+
+  // Закрытие диалога подтверждения отмены заказа
+  const handleCloseCancelDialog = () => {
+    setCancelDialog({
+      open: false,
+      orderId: null
+    });
+  };
+
+  // Отмена заказа
+  const handleCancelOrder = () => {
+    if (cancelDialog.orderId === null) {
+      handleCloseCancelDialog();
+      return;
+    }
+
+    const success = updateOrderStatus(cancelDialog.orderId, 'cancelled');
+
+    if (success) {
+      setSnackbar({
+        open: true,
+        message: 'Заказ успешно отменен',
+        severity: 'success'
+      });
+    } else {
+      setSnackbar({
+        open: true,
+        message: 'Не удалось отменить заказ',
+        severity: 'error'
+      });
+    }
+
+    handleCloseCancelDialog();
   };
 
   // Включение режима редактирования
@@ -199,6 +257,7 @@ const ProfilePage: React.FC = () => {
                   <TableCell>Срок аренды</TableCell>
                   <TableCell>Дата возврата</TableCell>
                   <TableCell>Статус</TableCell>
+                  <TableCell>Действия</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -225,6 +284,19 @@ const ProfilePage: React.FC = () => {
                         size="small"
                         className="profile-page__status-chip"
                       />
+                    </TableCell>
+                    <TableCell>
+                      {order.status === 'active' && (
+                        <IconButton 
+                          color="error" 
+                          size="small" 
+                          onClick={() => handleOpenCancelDialog(order.id)}
+                          title="Отменить заказ"
+                          className="profile-page__cancel-button"
+                        >
+                          <CancelIcon fontSize="small" />
+                        </IconButton>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -423,6 +495,28 @@ const ProfilePage: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      
+      {/* Диалог подтверждения отмены заказа */}
+      <Dialog
+        open={cancelDialog.open}
+        onClose={handleCloseCancelDialog}
+      >
+        <DialogTitle>Отмена заказа</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Вы уверены, что хотите отменить заказ №{cancelDialog.orderId}? 
+            Это действие невозможно отменить.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseCancelDialog} color="primary">
+            Отмена
+          </Button>
+          <Button onClick={handleCancelOrder} color="error" variant="contained">
+            Отменить заказ
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

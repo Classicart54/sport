@@ -7,15 +7,29 @@
 
 import { API_CONFIG, setApiMode, getApiMode, ApiMode } from './config/apiConfig';
 import { ProductApiService } from './services/productApiService';
+import { CategoryApiService } from './services/categoryApiService';
+import { AuthApiService } from './services/authApiService';
+import { ReviewApiService } from './services/reviewApiService';
 
 // Экспортируем тип режима API
 export type { ApiMode };
 
-// Экспортируем класс сервиса товаров
-export { ProductApiService };
+// Экспортируем классы сервисов
+export { ProductApiService, CategoryApiService, AuthApiService, ReviewApiService };
 
 // Экспортируем настроенные экземпляры сервисов
 export const productService = new ProductApiService();
+export const categoryService = new CategoryApiService();
+export const authService = new AuthApiService();
+export const reviewService = new ReviewApiService();
+
+// Экспортируем централизованный объект API
+export const apiService = {
+  products: productService,
+  categories: categoryService,
+  auth: authService,
+  reviews: reviewService
+};
 
 /**
  * Переключение между моковым и реальным режимом API

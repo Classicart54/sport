@@ -49,19 +49,19 @@
   
   // Стили для вкладки заказов
   &__table-container {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
+    margin-top: 16px;
+    overflow-x: auto;
   }
   
   &__no-orders {
     text-align: center;
-    padding: 48px 0;
+    padding: 24px;
     color: #666;
   }
   
   &__order-row {
     &:hover {
-      background-color: #f9f9f9;
+      background-color: rgba(0, 0, 0, 0.02);
     }
   }
   
@@ -70,10 +70,8 @@
   }
   
   &__order-item {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     margin-bottom: 4px;
+    font-size: 14px;
     
     &:last-child {
       margin-bottom: 0;
@@ -81,8 +79,7 @@
   }
   
   &__status-chip {
-    min-width: 80px;
-    justify-content: center;
+    font-weight: 500;
   }
   
   // Стили для вкладки профиля
@@ -150,7 +147,11 @@
   }
   
   &__cancel-button {
-    margin-right: 12px !important;
+    transition: transform 0.2s;
+    
+    &:hover {
+      transform: scale(1.1);
+    }
   }
   
   &__save-button {

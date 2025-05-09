@@ -42,6 +42,11 @@
     background-position: center;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    
+    &--unavailable {
+      filter: grayscale(1);
+      opacity: 0.7;
+    }
   }
   
   &__thumbnails {
@@ -112,7 +117,7 @@
   
   &__add-button {
     background-color: #333 !important;
-    color: #fff !important;
+    color: #f5f5f5 !important;
     text-transform: none !important;
     padding: 0.75rem 2rem !important;
     font-size: 1.1rem !important;
@@ -121,6 +126,11 @@
     
     &:hover {
       background-color: #111 !important;
+    }
+    
+    &:disabled {
+      background-color: #ccc;
+      color: #666;
     }
   }
   
@@ -147,6 +157,11 @@
     font-size: 1.75rem !important;
     font-weight: 600 !important;
     margin-bottom: 2rem !important;
+  }
+  
+  &__unavailable-alert {
+    width: 100%;
+    margin-bottom: 20px;
   }
   
   @media (max-width: 768px) {

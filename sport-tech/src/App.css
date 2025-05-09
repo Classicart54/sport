@@ -57,3 +57,17 @@ body {
 .read-the-docs {
   color: #888;
 }
+
+/* Глобальные стили для MUI */
+.MuiTypography-root {
+  color: #212121 !important;
+}
+
+/* Исключения для определенных компонентов, где нужно сохранить белый цвет */
+.hero .MuiTypography-root,
+.footer__policy-link,
+button.MuiButton-contained .MuiTypography-root,
+.category-card .MuiTypography-root,
+.catalog-card .MuiTypography-root {
+  color: inherit !important;
+}

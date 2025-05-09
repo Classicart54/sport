@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, Button, Rating, Divider, Paper } from '@mui/material';
+import { Box, Container, Typography, Button, Rating, Divider, Paper, Alert } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { products } from '../../data/mockData';
 import { Product, Review } from '../../types/interfaces';
@@ -144,10 +144,10 @@ const ProductPage: FC = () => {
         <div className="product-page__content">
           <div className="product-page__left">
             <Box className="product-page__image-container">
-              <Box 
-                className="product-page__image"
+              <div 
+                className={`product-page__image ${!product.available ? 'product-page__image--unavailable' : ''}`}
                 style={{ backgroundImage: `url(${product.image})` }}
-              />
+              ></div>
               <Box className="product-page__thumbnails">
                 <Box 
                   className="product-page__thumbnail"
@@ -182,26 +182,50 @@ const ProductPage: FC = () => {
                 </Typography>
               </Box>
               
-              <Typography variant="h3" className="product-page__price">
-                От {product.price} ₽ в день
+              {product.available === false && (
+                <Alert 
+                  severity="error" 
+                  variant="outlined" 
+                  className="product-page__unavailable-alert"
+                  sx={{ mb: 2 }}
+                >
+                  Данный товар в настоящее время недоступен для аренды
+                </Alert>
+              )}
+              
+              <Typography variant="h2" className="product-page__price">
+                {product.price} ₽ / день
               </Typography>
               
               <Typography variant="body1" className="product-page__description">
                 {description}
               </Typography>
               
-              <Button 
-                variant="contained" 
-                className="product-page__add-button"
-                onClick={handleAddToCart}
-              >
-                {auth.isAuthenticated ? 'В корзину' : 'Войти и арендовать'}
-              </Button>
-              
-              {!auth.isAuthenticated && (
-                <Typography variant="body2" className="product-page__auth-note">
-                  Для аренды необходимо войти в личный кабинет
-                </Typography>
+              {auth.isAuthenticated ? (
+                <Button 
+                  variant="contained" 
+                  className="product-page__add-button"
+                  onClick={handleAddToCart}
+                  disabled={!product.available}
+                >
+                  {product.available ? "Добавить в корзину" : "Недоступен для аренды"}
+                </Button>
+              ) : (
+                <div>
+                  <Button 
+                    variant="contained" 
+                    className="product-page__add-button"
+                    onClick={openLoginModal}
+                    disabled={!product.available}
+                  >
+                    {product.available ? "Войти, чтобы арендовать" : "Недоступен для аренды"}
+                  </Button>
+                  {!auth.isAuthenticated && (
+                    <Typography variant="body2" className="product-page__auth-note">
+                      Для аренды необходимо войти в личный кабинет
+                    </Typography>
+                  )}
+                </div>
               )}
             </Box>
           </div>

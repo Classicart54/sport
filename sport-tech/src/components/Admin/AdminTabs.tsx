@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { Box, Tabs, Tab } from '@mui/material';
+import { Box, Tabs, Tab, Typography } from '@mui/material';
+import { 
+  Inventory2Outlined, 
+  ShoppingCartOutlined, 
+  CommentOutlined
+} from '@mui/icons-material';
 import ProductsManagement from './Tabs/ProductsManagement';
 import OrdersManagement from './Tabs/OrdersManagement';
 import ReviewsManagement from './Tabs/ReviewsManagement';
@@ -20,9 +25,10 @@ const TabPanel = (props: TabPanelProps) => {
       id={`admin-tabpanel-${index}`}
       aria-labelledby={`admin-tab-${index}`}
       {...other}
+      style={{ padding: '24px 16px' }}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box>
           {children}
         </Box>
       )}
@@ -46,11 +52,55 @@ const AdminTabs: React.FC = () => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs value={value} onChange={handleChange} aria-label="admin tabs">
-          <Tab label="Товары" {...a11yProps(0)} />
-          <Tab label="Заказы" {...a11yProps(1)} />
-          <Tab label="Отзывы" {...a11yProps(2)} />
+      <Box sx={{ 
+        borderBottom: 1, 
+        borderColor: 'divider',
+        backgroundColor: '#f5f7fa'
+      }}>
+        <Tabs 
+          value={value} 
+          onChange={handleChange} 
+          aria-label="admin tabs"
+          variant="fullWidth"
+          className="admin-tabs__tabs"
+          sx={{
+            '& .MuiTab-root': {
+              color: '#555',
+              opacity: 0.7,
+              fontSize: '15px',
+              fontWeight: 500,
+              py: 2,
+              textTransform: 'none'
+            },
+            '& .Mui-selected': {
+              color: '#1976d2',
+              opacity: 1,
+              fontWeight: 600
+            },
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: '3px 3px 0 0'
+            }
+          }}
+        >
+          <Tab 
+            icon={<Inventory2Outlined />} 
+            iconPosition="start" 
+            label="Товары" 
+            {...a11yProps(0)} 
+          />
+          <Tab 
+            icon={<ShoppingCartOutlined />} 
+            iconPosition="start" 
+            label="Заказы" 
+            {...a11yProps(1)} 
+          />
+          <Tab 
+            icon={<CommentOutlined />} 
+            iconPosition="start" 
+            label="Отзывы" 
+            {...a11yProps(2)} 
+          />
         </Tabs>
       </Box>
       <TabPanel value={value} index={0}>

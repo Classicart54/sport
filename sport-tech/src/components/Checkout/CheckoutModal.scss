@@ -12,6 +12,10 @@
     background-color: #f8f8f8;
     color: #333;
     font-weight: 600;
+    
+    .MuiIconButton-root {
+      margin-right: -14px;
+    }
   }
   
   &__close-button {
@@ -28,9 +32,11 @@
   
   &__stepper {
     margin-bottom: 24px;
+    padding: 24px 0;
   }
   
   &__step-content {
+    padding: 0 16px;
     min-height: 300px;
   }
   
@@ -41,7 +47,8 @@
   }
   
   &__info {
-    color: #666;
+    margin-top: 8px;
+    color: rgba(0, 0, 0, 0.6);
     margin-bottom: 8px !important;
     
     &:last-child {
@@ -95,12 +102,12 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 24px 0;
+    padding: 16px;
   }
   
   &__success-icon {
     color: #4caf50;
-    font-size: 72px !important;
+    font-size: 64px;
     margin-bottom: 16px;
   }
   
@@ -121,6 +128,39 @@
     
     &:hover {
       background-color: #0069d9 !important;
+    }
+  }
+}
+
+.datepicker-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  
+  label {
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.7);
+  }
+  
+  .datepicker-input {
+    width: 100%;
+    padding: 15px 14px;
+    border: 1px solid rgba(0, 0, 0, 0.23);
+    border-radius: 4px;
+    font-size: 1rem;
+    line-height: 1.5;
+    cursor: pointer;
+    transition: border-color 0.2s ease-in-out;
+    
+    &:hover {
+      border-color: rgba(0, 0, 0, 0.87);
+    }
+    
+    &:focus {
+      border-color: #1976d2;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
     }
   }
 } 

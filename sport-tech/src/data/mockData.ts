@@ -1,4 +1,43 @@
-import { Category, Product } from '../types/interfaces';
+import { Category, Product, User } from '../types/interfaces';
+
+// Интерфейс для мок-пользователей с паролем
+interface MockUser extends User {
+  password: string;
+}
+
+// Базовые пользователи для начального заполнения
+export const mockUsers: MockUser[] = [
+  {
+    id: 1,
+    firstName: 'Александр',
+    lastName: 'Иванов',
+    email: 'alex@example.com',
+    password: 'password123',
+    phone: '+7 (999) 123-45-67',
+    city: 'Москва',
+    isAdmin: true
+  },
+  {
+    id: 2,
+    firstName: 'Елена',
+    lastName: 'Петрова',
+    email: 'elena@example.com',
+    password: 'password123',
+    phone: '+7 (999) 987-65-43',
+    city: 'Санкт-Петербург',
+    isAdmin: false
+  },
+  {
+    id: 3,
+    firstName: 'Сергей',
+    lastName: 'Сидоров',
+    email: 'sergey@example.com',
+    password: 'password123',
+    phone: '+7 (999) 555-55-55',
+    city: 'Казань',
+    isAdmin: false
+  }
+];
 
 // Базовые категории для начального заполнения
 const initialCategories: Category[] = [
@@ -52,21 +91,24 @@ const initialProducts: Product[] = [
     categoryId: 1,
     name: 'Беговая дорожка KETTLER Air R',
     price: 690,
-    image: 'https://images.unsplash.com/photo-1595078475328-1ab05d0a6a0e?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1595078475328-1ab05d0a6a0e?q=80&w=800&auto=format&fit=crop',
+    available: true
   },
   {
     id: 2,
     categoryId: 1,
     name: 'Беговая дорожка NordicTrack X32i',
     price: 890,
-    image: 'https://images.unsplash.com/photo-1641606346222-9867c3b1d772?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1641606346222-9867c3b1d772?q=80&w=800&auto=format&fit=crop',
+    available: true
   },
   {
     id: 3,
     categoryId: 1,
     name: 'Беговая дорожка Life Fitness Platinum Club',
     price: 950,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=80&w=800&auto=format&fit=crop',
+    available: true
   },
   
   // Велотренажеры (id: 2)
@@ -75,21 +117,24 @@ const initialProducts: Product[] = [
     categoryId: 2,
     name: 'Велотренажер Schwinn IC8',
     price: 550,
-    image: 'https://images.unsplash.com/photo-1570829460005-c840387bb1ca?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1570829460005-c840387bb1ca?q=80&w=800&auto=format&fit=crop',
+    available: true
   },
   {
     id: 5,
     categoryId: 2,
     name: 'Велотренажер Assault AirBike Elite',
     price: 620,
-    image: 'https://images.unsplash.com/photo-1596357395916-c4a04328bca2?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1596357395916-c4a04328bca2?q=80&w=800&auto=format&fit=crop',
+    available: true
   },
   {
     id: 6,
     categoryId: 2,
     name: 'Велотренажер Concept2 BikeErg',
     price: 580,
-    image: 'https://images.unsplash.com/photo-1591741706823-3ebeca1a38d5?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1591741706823-3ebeca1a38d5?q=80&w=800&auto=format&fit=crop',
+    available: true
   },
   
   // Гантели и штанги (id: 3)
@@ -98,21 +143,24 @@ const initialProducts: Product[] = [
     categoryId: 3,
     name: 'Набор гантелей Bowflex SelectTech 552',
     price: 120,
-    image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?q=80&w=800&auto=format&fit=crop',
+    available: true
   },
   {
     id: 8,
     categoryId: 3,
     name: 'Олимпийская штанга Eleiko',
     price: 250,
-    image: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?q=80&w=800&auto=format&fit=crop',
+    available: true
   },
   {
     id: 9,
     categoryId: 3,
     name: 'Гантели с регулируемым весом NordicTrack',
     price: 180,
-    image: 'https://images.unsplash.com/photo-1586401100295-7a8096fd231a?q=80&w=800&auto=format&fit=crop'
+    image: 'https://images.unsplash.com/photo-1586401100295-7a8096fd231a?q=80&w=800&auto=format&fit=crop',
+    available: true
   }
 ];
 

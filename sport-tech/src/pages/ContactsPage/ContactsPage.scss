@@ -3,7 +3,15 @@ $primary-color: #4a90e2;
 $text-secondary: #777777;
 
 .contacts-page {
-  padding-bottom: 80px;
+  padding: 60px 0;
+  
+  &__header {
+    background-color: #1976d2;
+    padding: 50px 0;
+    margin-bottom: 50px;
+    text-align: center;
+    color: #f5f5f5;
+  }
 
   &__hero {
     background: linear-gradient(135deg, $primary-color, darken($primary-color, 20%));

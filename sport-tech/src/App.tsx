@@ -19,6 +19,7 @@ import { ReviewsProvider } from './context/ReviewsContext';
 import { OrderProvider } from './context/OrderContext';
 import { useCart } from './context/CartContext';
 import { useAuth } from './context/AuthContext';
+
 import './App.css';
 
 // Компонент-обертка для CartNotification, который использует useCart

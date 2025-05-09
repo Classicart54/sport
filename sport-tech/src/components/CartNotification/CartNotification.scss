@@ -2,73 +2,53 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 1500;
-  width: 350px;
+  z-index: 9999;
+  min-width: 320px;
   background-color: white;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  animation: slideIn 0.3s ease-out;
-
-  @keyframes slideIn {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-
-  &__content {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  border-left: 4px solid #4caf50;
+  
+  &__container {
     display: flex;
     align-items: center;
-    padding: 16px;
+    padding: 15px 20px;
   }
-
+  
   &__icon {
     color: #4caf50;
-    margin-right: 12px;
-    font-size: 24px !important;
+    margin-right: 15px;
   }
-
-  &__text {
+  
+  &__content {
     flex: 1;
   }
-
+  
   &__title {
     font-weight: 500 !important;
-    margin-bottom: 2px !important;
-    color: #333;
+    margin-bottom: 5px !important;
+    color: #333 !important;
   }
-
-  &__product-name {
-    color: #666;
+  
+  &__message {
     font-size: 14px !important;
+    color: #666 !important;
   }
-
-  &__close {
-    color: #999 !important;
-    &:hover {
-      color: #666 !important;
-    }
-  }
-
-  &__actions {
-    padding: 8px 16px 16px;
-    display: flex;
-    justify-content: flex-end;
-  }
-
+  
   &__link {
-    color: #007bff;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
+    margin-top: 10px !important;
+    display: inline-block;
+    color: #1976d2 !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
     
     &:hover {
-      text-decoration: underline;
+      text-decoration: underline !important;
     }
+  }
+  
+  &__close {
+    color: #999;
+    margin-left: 10px;
   }
 } 

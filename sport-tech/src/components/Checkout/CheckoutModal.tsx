@@ -17,16 +17,27 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormLabel
 } from '@mui/material';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useOrders } from '../../context/OrderContext';
 import CloseIcon from '@mui/icons-material/Close';
 import DateRangeIcon from '@mui/icons-material/DateRange';
-import CreditCardIcon from '@mui/icons-material/CreditCard';
+import PaymentIcon from '@mui/icons-material/Payment';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
+
+// Импортируем компоненты react-datepicker
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+
 import './CheckoutModal.scss';
 
 interface CheckoutModalProps {
@@ -35,14 +46,12 @@ interface CheckoutModalProps {
 }
 
 interface FormData {
-  // Срок аренды
-  rentalDays: string;
+  // Даты начала и окончания аренды
+  startDate: Date | null;
+  endDate: Date | null;
   
-  // Данные карты
-  cardNumber: string;
-  cardName: string;
-  cardExpiry: string;
-  cardCVC: string;
+  // Способ оплаты
+  paymentMethod: 'cash' | 'card';
   
   // Адрес доставки
   fullName: string;
@@ -59,13 +68,14 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [completed, setCompleted] = useState(false);
   
+  // Получаем текущую дату для использования в календаре
+  const today = new Date();
+  
   // Начальное состояние формы
   const [formData, setFormData] = useState<FormData>({
-    rentalDays: '7',
-    cardNumber: '',
-    cardName: '',
-    cardExpiry: '',
-    cardCVC: '',
+    startDate: today, // По умолчанию - сегодня
+    endDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000), // Через неделю
+    paymentMethod: 'cash',
     fullName: '',
     phone: '',
     city: '',
@@ -74,9 +84,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
   });
 
   // Шаги оформления заказа
-  const steps = ['Срок аренды', 'Оплата', 'Доставка'];
+  const steps = ['Период аренды', 'Способ оплаты', 'Доставка'];
 
-  // Обновление данных формы
+  // Обновление данных формы для текстовых полей
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({
@@ -85,42 +95,48 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
     });
   };
 
-  // Обработка изменения значения Select
-  const handleSelectChange = (e: SelectChangeEvent<string>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name as string]: value
+  // Обработчик изменения даты начала аренды
+  const handleStartDateChange = (date: Date | null) => {
+    if (!date) return;
+    
+    setFormData(prev => {
+      // Если дата начала позже даты окончания, устанавливаем дату окончания на день позже
+      const newEndDate = prev.endDate && date >= prev.endDate 
+        ? new Date(date.getTime() + 24 * 60 * 60 * 1000) 
+        : prev.endDate;
+      
+      return {
+        ...prev,
+        startDate: date,
+        endDate: newEndDate
+      };
     });
   };
 
-  // Обработка ввода номера карты (добавление пробелов)
-  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\s/g, '');
-    if (value.length > 16) value = value.slice(0, 16);
+  // Обработчик изменения даты окончания аренды
+  const handleEndDateChange = (date: Date | null) => {
+    if (!date) return;
     
-    // Добавляем пробелы после каждых 4 цифр
-    const formattedValue = value.replace(/(.{4})/g, '$1 ').trim();
-    
-    setFormData({
-      ...formData,
-      cardNumber: formattedValue
-    });
+    setFormData(prev => ({
+      ...prev,
+      endDate: date
+    }));
   };
 
-  // Обработка ввода срока действия карты
-  const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '');
+  // Расчет количества дней между датами
+  const calculateRentalDays = (): number => {
+    if (!formData.startDate || !formData.endDate) return 0;
     
-    if (value.length > 4) value = value.slice(0, 4);
-    
-    if (value.length >= 2) {
-      value = value.slice(0, 2) + '/' + value.slice(2);
-    }
-    
+    const diffTime = Math.abs(formData.endDate.getTime() - formData.startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays + 1; // +1 чтобы включить оба дня
+  };
+
+  // Обработка изменения способа оплаты
+  const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      cardExpiry: value
+      paymentMethod: e.target.value as 'cash' | 'card'
     });
   };
 
@@ -152,11 +168,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
     setActiveStep(0);
     setCompleted(false);
     setFormData({
-      rentalDays: '7',
-      cardNumber: '',
-      cardName: '',
-      cardExpiry: '',
-      cardCVC: '',
+      startDate: today,
+      endDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000),
+      paymentMethod: 'cash',
       fullName: '',
       phone: '',
       city: '',
@@ -167,14 +181,19 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
 
   // Отправка формы
   const handleSubmit = () => {
-    // Проверяем, авторизован ли пользователь
-    if (!auth.isAuthenticated || !auth.user) {
-      console.error('Пользователь не авторизован');
+    // Проверяем, авторизован ли пользователь и выбраны ли даты
+    if (!auth.isAuthenticated || !auth.user || !formData.startDate || !formData.endDate) {
+      console.error('Пользователь не авторизован или даты не выбраны');
       return;
     }
 
     try {
-      // Создаем новый заказ через OrderContext
+      // Рассчитываем количество дней аренды
+      const rentalDays = calculateRentalDays();
+      
+      // Форматируем дату возврата в формат DD.MM.YYYY
+      const returnDateString = `${formData.endDate.getDate().toString().padStart(2, '0')}.${(formData.endDate.getMonth() + 1).toString().padStart(2, '0')}.${formData.endDate.getFullYear()}`;
+
       const newOrder = addOrder({
         userId: auth.user.id,
         items: cart.items.map(item => ({
@@ -183,10 +202,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
           quantity: item.quantity,
           price: item.product.price
         })),
-        totalAmount: cart.subtotal,
+        totalAmount: cart.subtotal * rentalDays,
         status: 'active',
-        rentalDays: parseInt(formData.rentalDays),
-        returnDate: '' // Это поле будет рассчитано внутри addOrder
+        rentalDays: rentalDays,
+        returnDate: returnDateString
       });
 
       console.log('Заказ успешно создан:', newOrder);
@@ -203,15 +222,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
   // Проверка заполнения полей на текущем шаге
   const isStepValid = () => {
     switch (activeStep) {
-      case 0: // Срок аренды
-        return formData.rentalDays !== '';
-      case 1: // Оплата
-        return (
-          formData.cardNumber.replace(/\s/g, '').length === 16 &&
-          formData.cardName.length > 0 &&
-          formData.cardExpiry.length === 5 &&
-          formData.cardCVC.length === 3
-        );
+      case 0: // Период аренды
+        return formData.startDate !== null && 
+               formData.endDate !== null && 
+               formData.startDate <= formData.endDate;
+      case 1: // Способ оплаты
+        return formData.paymentMethod === 'cash' || formData.paymentMethod === 'card';
       case 2: // Доставка
         return (
           formData.fullName.length > 0 &&
@@ -225,113 +241,135 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
     }
   };
 
-  // Содержимое шага срока аренды
-  const renderRentalStep = () => (
+  // Форматирование даты в читабельный вид
+  const formatDate = (date: Date | null): string => {
+    if (!date) return '';
+    return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
+  };
+
+  // Содержимое шага выбора периода аренды
+  const renderRentalStep = () => {
+    const rentalDays = calculateRentalDays();
+    const totalRentalCost = (cart.subtotal * rentalDays).toFixed(2);
+    const depositAmount = (cart.subtotal * 0.5).toFixed(2);
+
+    return (
     <Grid container spacing={3} className="checkout-modal__rental">
+        <Grid item xs={12}>
+          <Typography variant="h6" className="checkout-modal__subtitle">
+            Выберите период аренды
+          </Typography>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <div className="datepicker-container">
+            <label>Дата начала аренды</label>
+            <DatePicker
+              selected={formData.startDate}
+              onChange={handleStartDateChange}
+              selectsStart
+              startDate={formData.startDate}
+              endDate={formData.endDate}
+              minDate={today}
+              dateFormat="dd.MM.yyyy"
+              className="datepicker-input"
+              placeholderText="Выберите дату начала"
+            />
+          </div>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <div className="datepicker-container">
+            <label>Дата окончания аренды</label>
+            <DatePicker
+              selected={formData.endDate}
+              onChange={handleEndDateChange}
+              selectsEnd
+              startDate={formData.startDate}
+              endDate={formData.endDate}
+              minDate={formData.startDate ? new Date(formData.startDate.getTime() + 24 * 60 * 60 * 1000) : undefined}
+              dateFormat="dd.MM.yyyy"
+              className="datepicker-input"
+              placeholderText="Выберите дату окончания"
+            />
+          </div>
+        </Grid>
+        <Grid item xs={12}>
+          {formData.startDate && formData.endDate ? (
+            <>
+              <Typography variant="body2" className="checkout-modal__info">
+                Период аренды: с {formatDate(formData.startDate)} по {formatDate(formData.endDate)}
+              </Typography>
+              <Typography variant="body2" className="checkout-modal__info">
+                Количество дней: {rentalDays} {rentalDays === 1 ? 'день' : (rentalDays >= 2 && rentalDays <= 4) ? 'дня' : 'дней'}
+              </Typography>
+              <Typography variant="body2" className="checkout-modal__info">
+                Общая стоимость аренды: {totalRentalCost} ₽
+              </Typography>
+              <Typography variant="body2" className="checkout-modal__info">
+                Залог: {depositAmount} ₽ (возвращается после завершения аренды)
+              </Typography>
+            </>
+          ) : (
+            <Typography variant="body2" className="checkout-modal__info">
+              Выберите даты для расчета стоимости аренды
+            </Typography>
+          )}
+        </Grid>
+      </Grid>
+    );
+  };
+
+  // Содержимое шага способа оплаты
+  const renderPaymentMethodStep = () => (
+    <Grid container spacing={3} className="checkout-modal__payment">
       <Grid item xs={12}>
         <Typography variant="h6" className="checkout-modal__subtitle">
-          Выберите срок аренды
+          Выберите способ оплаты
         </Typography>
       </Grid>
       <Grid item xs={12}>
-        <FormControl fullWidth>
-          <InputLabel id="rental-days-label">Срок аренды в днях</InputLabel>
-          <Select
-            labelId="rental-days-label"
-            name="rentalDays"
-            value={formData.rentalDays}
-            onChange={handleSelectChange}
-            startAdornment={
-              <InputAdornment position="start">
-                <DateRangeIcon />
-              </InputAdornment>
-            }
+        <FormControl component="fieldset">
+          <FormLabel component="legend">Доступные способы оплаты</FormLabel>
+          <RadioGroup
+            aria-label="payment-method"
+            name="paymentMethod"
+            value={formData.paymentMethod}
+            onChange={handlePaymentMethodChange}
           >
-            <MenuItem value="3">3 дня</MenuItem>
-            <MenuItem value="7">7 дней</MenuItem>
-            <MenuItem value="14">14 дней</MenuItem>
-            <MenuItem value="30">30 дней</MenuItem>
-          </Select>
+            <FormControlLabel 
+              value="cash" 
+              control={<Radio />} 
+              label={
+                <Grid container alignItems="center" spacing={1}>
+                  <Grid item>
+                    <AttachMoneyIcon />
+                  </Grid>
+                  <Grid item>Наличными при получении</Grid>
+                </Grid>
+            }
+            />
+            <FormControlLabel 
+              value="card" 
+              control={<Radio />} 
+              label={
+                <Grid container alignItems="center" spacing={1}>
+                  <Grid item>
+                    <CreditCardIcon />
+                  </Grid>
+                  <Grid item>Картой при получении</Grid>
+                </Grid>
+              }
+            />
+          </RadioGroup>
         </FormControl>
       </Grid>
       <Grid item xs={12}>
         <Typography variant="body2" className="checkout-modal__info">
-          Общая стоимость аренды: {(cart.subtotal * parseInt(formData.rentalDays)).toFixed(2)} ₽
+          Оплату необходимо произвести в момент получения оборудования.
         </Typography>
         <Typography variant="body2" className="checkout-modal__info">
-          Залог: {(cart.subtotal * 0.5).toFixed(2)} ₽ (возвращается после завершения аренды)
+          Также при получении необходимо внести залог в размере {(cart.subtotal * 0.5).toFixed(2)} ₽,
+          который будет возвращен после завершения аренды и возврата оборудования в исправном состоянии.
         </Typography>
-      </Grid>
-    </Grid>
-  );
-
-  // Содержимое шага оплаты
-  const renderPaymentStep = () => (
-    <Grid container spacing={3} className="checkout-modal__payment">
-      <Grid item xs={12}>
-        <Typography variant="h6" className="checkout-modal__subtitle">
-          Данные банковской карты
-        </Typography>
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          label="Номер карты"
-          name="cardNumber"
-          value={formData.cardNumber}
-          onChange={handleCardNumberChange}
-          placeholder="0000 0000 0000 0000"
-          fullWidth
-          required
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <CreditCardIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          label="Имя держателя карты"
-          name="cardName"
-          value={formData.cardName}
-          onChange={handleChange}
-          placeholder="IVAN IVANOV"
-          fullWidth
-          required
-        />
-      </Grid>
-      <Grid item xs={6}>
-        <TextField
-          label="Срок действия"
-          name="cardExpiry"
-          value={formData.cardExpiry}
-          onChange={handleExpiryChange}
-          placeholder="MM/YY"
-          fullWidth
-          required
-        />
-      </Grid>
-      <Grid item xs={6}>
-        <TextField
-          label="CVC/CVV"
-          name="cardCVC"
-          value={formData.cardCVC}
-          onChange={(e) => {
-            const value = e.target.value.replace(/\D/g, '');
-            if (value.length <= 3) {
-              setFormData({
-                ...formData,
-                cardCVC: value
-              });
-            }
-          }}
-          placeholder="***"
-          type="password"
-          fullWidth
-          required
-        />
       </Grid>
     </Grid>
   );
@@ -400,14 +438,19 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
   );
 
   // Содержимое успешного оформления заказа
-  const renderCompletedStep = () => (
+  const renderCompletedStep = () => {
+    const rentalDays = calculateRentalDays();
+    
+    return (
     <div className="checkout-modal__completed">
       <CheckCircleOutlineIcon className="checkout-modal__success-icon" />
       <Typography variant="h5" className="checkout-modal__success-title">
         Заказ успешно оформлен
       </Typography>
       <Typography variant="body1" className="checkout-modal__success-text">
-        Благодарим за ваш заказ! Вы арендовали оборудование на {formData.rentalDays} дней.
+          Благодарим за ваш заказ! Вы арендовали оборудование на {rentalDays} {rentalDays === 1 ? 'день' : (rentalDays >= 2 && rentalDays <= 4) ? 'дня' : 'дней'} 
+          с {formatDate(formData.startDate)} по {formatDate(formData.endDate)}.
+          Оплата будет произведена {formData.paymentMethod === 'cash' ? 'наличными' : 'картой'} при получении.
         Информация о заказе отправлена на вашу электронную почту.
       </Typography>
       <Button 
@@ -420,6 +463,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
       </Button>
     </div>
   );
+  };
 
   // Определение содержимого активного шага
   const getStepContent = (step: number) => {
@@ -427,7 +471,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
       case 0:
         return renderRentalStep();
       case 1:
-        return renderPaymentStep();
+        return renderPaymentMethodStep();
       case 2:
         return renderDeliveryStep();
       default:

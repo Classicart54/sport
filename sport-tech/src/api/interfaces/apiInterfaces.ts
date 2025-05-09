@@ -34,6 +34,12 @@ export interface ProductApiService extends ExtendedApiService<Product> {
    * @param limit Лимит товаров
    */
   getDiscountedProducts(limit?: number): Promise<Product[]>;
+  
+  /**
+   * Получение товаров с лучшим рейтингом
+   * @param limit Лимит товаров
+   */
+  getBestRatedProducts(limit?: number): Promise<Product[]>;
 }
 
 /**

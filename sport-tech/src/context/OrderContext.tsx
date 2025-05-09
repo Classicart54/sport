@@ -106,18 +106,11 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
     const today = new Date();
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;
     
-    // Расчет даты возврата
-    const returnDate = new Date(today);
-    returnDate.setDate(returnDate.getDate() + parseInt(newOrderData.rentalDays.toString()));
-    const formattedReturnDate = `${returnDate.getDate().toString().padStart(2, '0')}.${(returnDate.getMonth() + 1).toString().padStart(2, '0')}.${returnDate.getFullYear()}`;
-    
-    // Создание нового заказа с деструктуризацией данных заказа, исключая returnDate из newOrderData
-    const { returnDate: _, ...orderDataWithoutReturnDate } = newOrderData;
+    // Создание нового заказа. Теперь используем returnDate из newOrderData.
     const newOrder: Order = {
       id: newOrderId,
       date: formattedDate,
-      returnDate: formattedReturnDate,
-      ...orderDataWithoutReturnDate
+      ...newOrderData // Просто копируем все данные из newOrderData, включая returnDate
     };
     
     // Добавление заказа в состояние и сохранение в localStorage
