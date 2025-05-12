@@ -1,81 +1,79 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { CartItem } from './CartContext';
+import { orderService, isMockMode } from '../api';
 
-// Интерфейс для элемента заказа
-export interface OrderItem {
-  id: number;
-  name: string;
-  quantity: number;
-  price: number;
+// Интерфейс для контактной информации
+export interface OrderContactInfo {
+  phone: string;
+  address: string;
+  comment?: string;
+  paymentMethod: 'cash' | 'card';
+  userId?: number;
 }
 
 // Интерфейс для заказа
 export interface Order {
   id: number;
-  date: string;
-  items: OrderItem[];
+  items: CartItem[];
   totalAmount: number;
-  status: 'active' | 'completed' | 'cancelled';
-  rentalDays: number;
-  returnDate: string;
-  userId: number;
+  contactInfo: OrderContactInfo;
+  status: 'new' | 'processing' | 'delivered' | 'completed' | 'cancelled';
+  rentalStartDate: string;
+  createdAt: string;
 }
+
+// Интерфейс для элемента заказа (для совместимости с API)
+export interface OrderItem extends CartItem {}
 
 // Интерфейс контекста заказов
 interface OrderContextType {
   orders: Order[];
+  getAllOrders: () => Order[];
   getUserOrders: (userId: number) => Order[];
-  addOrder: (newOrder: Omit<Order, 'id' | 'date'>) => Order;
-  updateOrderStatus: (orderId: number, newStatus: 'active' | 'completed' | 'cancelled') => boolean;
+  createOrder: (orderData: Omit<Order, 'id'>) => Promise<Order>;
+  updateOrderStatus: (orderId: number, newStatus: Order['status']) => Promise<boolean>;
+  getOrderById: (orderId: number) => Order | undefined;
+  resetOrdersToMock: () => void;
 }
+
+// Создаем контекст
+const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 // Ключ для localStorage
 const ORDERS_STORAGE_KEY = 'sport_tech_orders';
 
-// Мок-данные для заказов с привязкой к пользователям
+// Мок-данные для заказов
 const mockOrders: Order[] = [
   {
     id: 1,
-    date: '20.05.2023',
     items: [
-      { id: 1, name: 'Беговая дорожка NordicTrack X32i', quantity: 1, price: 550 },
-      { id: 2, name: 'Набор гантелей Reebok 10кг', quantity: 2, price: 120 }
+      {
+        id: 1,
+        product: {
+          id: 1,
+          name: 'Беговая дорожка NordicTrack X32i',
+          description: 'Профессиональная беговая дорожка с большим экраном',
+          price: 550,
+          image: 'https://example.com/treadmill.jpg',
+          categoryId: 1
+        },
+        quantity: 1,
+        days: 14
+      }
     ],
-    totalAmount: 790,
-    status: 'active',
-    rentalDays: 14,
-    returnDate: '03.06.2023',
-    userId: 1
-  },
-  {
-    id: 2,
-    date: '10.04.2023',
-    items: [
-      { id: 3, name: 'Эллиптический тренажер Precor EFX 885', quantity: 1, price: 780 }
-    ],
-    totalAmount: 780,
-    status: 'completed',
-    rentalDays: 7,
-    returnDate: '17.04.2023',
-    userId: 1
-  },
-  {
-    id: 3,
-    date: '05.03.2023',
-    items: [
-      { id: 4, name: 'Велотренажер Schwinn IC7', quantity: 1, price: 320 },
-      { id: 5, name: 'Коврик для йоги Manduka', quantity: 1, price: 50 }
-    ],
-    totalAmount: 370,
-    status: 'cancelled',
-    rentalDays: 30,
-    returnDate: '04.04.2023',
-    userId: 2
+    totalAmount: 7700,
+    contactInfo: {
+      phone: '+7 (999) 123-45-67',
+      address: 'г. Москва, ул. Ленина, д. 10, кв. 25',
+      paymentMethod: 'cash',
+      userId: 1
+    },
+    status: 'new',
+    rentalStartDate: '2023-05-20T10:00:00.000Z',
+    createdAt: '2023-05-18T15:30:00.000Z'
   }
 ];
-
-// Создаем контекст
-const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 // Пропсы для провайдера
 interface OrderProviderProps {
@@ -85,103 +83,190 @@ interface OrderProviderProps {
 // Провайдер контекста заказов
 export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const { auth } = useAuth();
 
   // Загрузка заказов при монтировании компонента
   useEffect(() => {
-    const loadedOrders = loadOrdersFromStorage();
-    setOrders(loadedOrders);
+    const fetchOrders = async () => {
+      try {
+        if (isMockMode()) {
+          // В режиме мока используем локальные данные как и раньше
+          const loadedOrders = loadOrdersFromStorage();
+          setOrders(loadedOrders);
+          
+          // Синхронизируем данные с API сервисом
+          orderService.syncOrdersWithContext();
+        } else {
+          // В режиме реального API загружаем данные с сервера
+          const allOrders = await orderService.getAll();
+          setOrders(allOrders);
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке заказов:', error);
+        // В случае ошибки используем мок-данные
+        const loadedOrders = loadOrdersFromStorage();
+        setOrders(loadedOrders);
+      }
+    };
+
+    fetchOrders();
   }, []);
+
+  // Получение всех заказов
+  const getAllOrders = (): Order[] => {
+    // Обязательно возвращаем полную копию массива orders,
+    // чтобы избежать проблем с мутацией данных
+    return [...orders];
+  };
 
   // Получение заказов пользователя по ID
   const getUserOrders = (userId: number): Order[] => {
-    return orders.filter(order => order.userId === userId);
+    if (!userId) return [];
+    
+    return orders.filter(order => 
+      order.contactInfo && 
+      typeof order.contactInfo.userId === 'number' && 
+      order.contactInfo.userId === userId
+    );
   };
 
-  // Функция для добавления нового заказа
-  const addOrder = (newOrderData: Omit<Order, 'id' | 'date'>): Order => {
-    // Генерация ID для нового заказа
-    const newOrderId = orders.length > 0 ? Math.max(...orders.map(order => order.id)) + 1 : 1;
-    
-    // Формирование текущей даты в формате дд.мм.гггг
-    const today = new Date();
-    const formattedDate = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;
-    
-    // Создание нового заказа. Теперь используем returnDate из newOrderData.
-    const newOrder: Order = {
-      id: newOrderId,
-      date: formattedDate,
-      ...newOrderData // Просто копируем все данные из newOrderData, включая returnDate
-    };
-    
-    // Добавление заказа в состояние и сохранение в localStorage
-    const updatedOrders = [...orders, newOrder];
-    setOrders(updatedOrders);
-    saveOrdersToStorage(updatedOrders);
-    
-    return newOrder;
+  // Получение заказа по ID
+  const getOrderById = (orderId: number): Order | undefined => {
+    return orders.find(order => order.id === orderId);
+  };
+
+  // Функция для создания нового заказа
+  const createOrder = async (orderData: Omit<Order, 'id'>): Promise<Order> => {
+    try {
+      // Проверяем, авторизован ли пользователь и добавляем его ID в контактную информацию
+      const contactInfo = {
+        ...orderData.contactInfo,
+        userId: auth.isAuthenticated && auth.user ? auth.user.id : undefined
+      };
+      
+      // Обновленные данные заказа
+      const updatedOrderData = {
+        ...orderData,
+        contactInfo
+      };
+      
+      // Создание нового заказа через API сервис
+      const newOrder = await orderService.create(updatedOrderData as any);
+      
+      // Обновляем локальное состояние
+      setOrders(prev => [...prev, newOrder]);
+      
+      return newOrder;
+    } catch (error) {
+      console.error('Ошибка при создании заказа:', error);
+      throw error;
+    }
   };
 
   // Функция для обновления статуса заказа
-  const updateOrderStatus = (orderId: number, newStatus: 'active' | 'completed' | 'cancelled'): boolean => {
+  const updateOrderStatus = async (orderId: number, newStatus: Order['status']): Promise<boolean> => {
     try {
-      const updatedOrders = [...orders];
-      const orderIndex = updatedOrders.findIndex(order => order.id === orderId);
+      // Обновляем статус через API сервис
+      const success = await orderService.updateOrderStatus(orderId, newStatus);
       
-      if (orderIndex === -1) {
-        return false;
+      if (success) {
+        // Обновляем локальное состояние
+        setOrders(prev => 
+          prev.map(order => 
+            order.id === orderId 
+              ? { ...order, status: newStatus } 
+              : order
+          )
+        );
       }
       
-      updatedOrders[orderIndex].status = newStatus;
-      setOrders(updatedOrders);
-      saveOrdersToStorage(updatedOrders);
-      return true;
+      return success;
     } catch (error) {
       console.error('Ошибка при обновлении статуса заказа:', error);
       return false;
     }
   };
 
+  // Метод для сброса заказов к начальным данным
+  const resetOrdersToMock = (): void => {
+    try {
+      // Очищаем локальное хранилище
+      localStorage.removeItem(ORDERS_STORAGE_KEY);
+      // Сохраняем мок-данные
+      saveOrdersToStorage(mockOrders);
+      // Обновляем состояние
+      setOrders(mockOrders);
+      
+      // Синхронизируем с API сервисом
+      orderService.syncOrdersWithContext();
+      
+      console.log('Заказы успешно сброшены к начальным данным');
+    } catch (error) {
+      console.error('Ошибка при сбросе заказов к начальным данным:', error);
+    }
+  };
+
   // Значение контекста
   const value: OrderContextType = {
     orders,
+    getAllOrders,
     getUserOrders,
-    addOrder,
-    updateOrderStatus
+    createOrder,
+    updateOrderStatus,
+    getOrderById,
+    resetOrdersToMock
   };
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
 };
 
 // Загрузка заказов из localStorage или использование начальных данных
-export const loadOrdersFromStorage = (): Order[] => {
+const loadOrdersFromStorage = (): Order[] => {
   try {
     const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
     if (storedOrders) {
-      return JSON.parse(storedOrders);
+      const parsedOrders = JSON.parse(storedOrders);
+      // Проверяем, что parsedOrders - это массив и он не пустой
+      if (Array.isArray(parsedOrders) && parsedOrders.length > 0) {
+        console.log('Загружены заказы из localStorage:', parsedOrders);
+        return parsedOrders;
+      }
     }
   } catch (error) {
     console.error('Ошибка при загрузке заказов из localStorage:', error);
   }
   
+  // Если заказов нет или возникла ошибка, используем мок-данные
+  console.log('Используются мок-данные для заказов:', mockOrders);
   // Сохраняем начальные заказы в localStorage при первом запуске
   saveOrdersToStorage(mockOrders);
   return mockOrders;
 };
 
 // Сохранение заказов в localStorage
-export const saveOrdersToStorage = (orders: Order[]): void => {
+const saveOrdersToStorage = (orders: Order[]): void => {
   try {
-    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(orders));
+    const ordersJson = JSON.stringify(orders);
+    localStorage.setItem(ORDERS_STORAGE_KEY, ordersJson);
+    console.log('Заказы успешно сохранены в localStorage:', orders);
   } catch (error) {
     console.error('Ошибка при сохранении заказов в localStorage:', error);
+    // Попытка очистить хранилище и сохранить повторно, если возникла ошибка
+    try {
+      localStorage.removeItem(ORDERS_STORAGE_KEY);
+      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify([]));
+      console.warn('Хранилище заказов было очищено и установлено по умолчанию');
+    } catch (clearError) {
+      console.error('Невозможно очистить хранилище заказов:', clearError);
+    }
   }
 };
 
 // Хук для использования контекста заказов
-export const useOrders = (): OrderContextType => {
+export const useOrder = (): OrderContextType => {
   const context = useContext(OrderContext);
   if (context === undefined) {
-    throw new Error('useOrders must be used within an OrderProvider');
+    throw new Error('useOrder must be used within an OrderProvider');
   }
   return context;
 }; 

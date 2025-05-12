@@ -495,7 +495,7 @@ const ProductsManagement: React.FC = () => {
                 onClick={() => handleToggleCategory(category.id)}
                 sx={{ 
                   borderRadius: '8px',
-                  mb: 1,
+                  mb: 1, 
                   '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.04)' }
                 }}
               >
@@ -516,35 +516,35 @@ const ProductsManagement: React.FC = () => {
                   secondary={`${products.filter(p => p.categoryId === category.id).length} товаров`}
                 />
                 <Box sx={{ display: 'flex' }}>
-                  <IconButton 
+                <IconButton 
                     edge="end" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenEditCategoryModal(category);
-                    }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenEditCategoryModal(category);
+                  }}
                     sx={{ 
                       color: '#1976d2',
                       bgcolor: 'rgba(25, 118, 210, 0.08)',
                       mx: 0.5,
                       '&:active': { bgcolor: 'rgba(25, 118, 210, 0.16)' }
                     }}
-                  >
+                >
                     <Edit />
-                  </IconButton>
-                  <IconButton 
+                </IconButton>
+                <IconButton 
                     edge="end"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenDeleteCategoryDialog(category.id);
-                    }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenDeleteCategoryDialog(category.id);
+                  }}
                     sx={{ 
                       color: '#d32f2f',
                       bgcolor: 'rgba(211, 47, 47, 0.08)',
                       '&:active': { bgcolor: 'rgba(211, 47, 47, 0.16)' }
                     }}
-                  >
+                >
                     <Delete />
-                  </IconButton>
+                </IconButton>
                 </Box>
                 {openCategories[category.id] ? <ExpandLess /> : <ExpandMore />}
               </ListItem>
@@ -563,9 +563,9 @@ const ProductsManagement: React.FC = () => {
                       }}
                     >
                       <Box 
-                        component="img" 
+                              component="img"
                         src={product.image} 
-                        alt={product.name}
+                              alt={product.name}
                         sx={{ 
                           width: 40, 
                           height: 40, 
@@ -573,14 +573,14 @@ const ProductsManagement: React.FC = () => {
                           objectFit: 'cover',
                           mr: 2
                         }}
-                      />
+                            />
                       <Box sx={{ flexGrow: 1 }}>
                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {product.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
+                                {product.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
                           {product.price} ₽/день
-                        </Typography>
+                              </Typography>
                       </Box>
                       <Chip 
                         label={product.available !== false ? "Доступен" : "Недоступен"} 
@@ -588,29 +588,29 @@ const ProductsManagement: React.FC = () => {
                         size="small"
                         sx={{ mr: 1 }}
                       />
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleOpenEditProductModal(product)}
+                              <IconButton 
+                                size="small"
+                                onClick={() => handleOpenEditProductModal(product)}
                         sx={{ 
                           color: '#1976d2',
                           p: 1,
                           mr: 0.5
                         }}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleOpenDeleteProductDialog(product.id)}
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                              <IconButton 
+                                size="small"
+                                onClick={() => handleOpenDeleteProductDialog(product.id)}
                         sx={{ 
                           color: '#d32f2f',
                           p: 1
                         }}
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  ))}
+                              >
+                                <Delete fontSize="small" />
+                              </IconButton>
+                        </Box>
+                      ))}
                 </Box>
               </Collapse>
             </React.Fragment>

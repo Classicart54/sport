@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogTitle, 
@@ -21,11 +21,13 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
-  FormLabel
+  FormLabel,
+  Paper,
+  Box
 } from '@mui/material';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
-import { useOrders } from '../../context/OrderContext';
+import { useOrders } from '../../context/OrdersContext';
 import CloseIcon from '@mui/icons-material/Close';
 import DateRangeIcon from '@mui/icons-material/DateRange';
 import PaymentIcon from '@mui/icons-material/Payment';
@@ -33,10 +35,20 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
+import PersonIcon from '@mui/icons-material/Person';
+import PhoneIcon from '@mui/icons-material/Phone';
+import LocationCityIcon from '@mui/icons-material/LocationCity';
+import HomeIcon from '@mui/icons-material/Home';
+import MarkunreadMailboxIcon from '@mui/icons-material/MarkunreadMailbox';
 
 // Импортируем компоненты react-datepicker
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { registerLocale } from 'react-datepicker';
+import ru from 'date-fns/locale/ru';
+
+// Регистрируем русскую локаль
+registerLocale('ru', ru);
 
 import './CheckoutModal.scss';
 
@@ -82,6 +94,18 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
     address: '',
     postalCode: ''
   });
+
+  // Заполняем данные из профиля пользователя при открытии модального окна
+  useEffect(() => {
+    if (open && auth.isAuthenticated && auth.user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: `${auth.user?.firstName || ''} ${auth.user?.lastName || ''}`.trim(),
+        phone: auth.user?.phone || '',
+        city: auth.user?.city || ''
+      }));
+    }
+  }, [open, auth.isAuthenticated, auth.user]);
 
   // Шаги оформления заказа
   const steps = ['Период аренды', 'Способ оплаты', 'Доставка'];
@@ -202,10 +226,17 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
           quantity: item.quantity,
           price: item.product.price
         })),
-        totalAmount: cart.subtotal * rentalDays,
+        totalAmount: cart.subtotal,
         status: 'active',
         rentalDays: rentalDays,
-        returnDate: returnDateString
+        returnDate: returnDateString,
+        contactInfo: {
+          fullName: formData.fullName,
+          phone: formData.phone,
+          address: `${formData.city}, ${formData.address}`,
+          postalCode: formData.postalCode,
+          paymentMethod: formData.paymentMethod
+        }
       });
 
       console.log('Заказ успешно создан:', newOrder);
@@ -247,307 +278,297 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ open, onClose }) => {
     return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
   };
 
-  // Содержимое шага выбора периода аренды
-  const renderRentalStep = () => {
-    const rentalDays = calculateRentalDays();
-    const totalRentalCost = (cart.subtotal * rentalDays).toFixed(2);
-    const depositAmount = (cart.subtotal * 0.5).toFixed(2);
-
-    return (
-    <Grid container spacing={3} className="checkout-modal__rental">
-        <Grid item xs={12}>
-          <Typography variant="h6" className="checkout-modal__subtitle">
-            Выберите период аренды
-          </Typography>
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <div className="datepicker-container">
-            <label>Дата начала аренды</label>
-            <DatePicker
-              selected={formData.startDate}
-              onChange={handleStartDateChange}
-              selectsStart
-              startDate={formData.startDate}
-              endDate={formData.endDate}
-              minDate={today}
-              dateFormat="dd.MM.yyyy"
-              className="datepicker-input"
-              placeholderText="Выберите дату начала"
-            />
-          </div>
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <div className="datepicker-container">
-            <label>Дата окончания аренды</label>
-            <DatePicker
-              selected={formData.endDate}
-              onChange={handleEndDateChange}
-              selectsEnd
-              startDate={formData.startDate}
-              endDate={formData.endDate}
-              minDate={formData.startDate ? new Date(formData.startDate.getTime() + 24 * 60 * 60 * 1000) : undefined}
-              dateFormat="dd.MM.yyyy"
-              className="datepicker-input"
-              placeholderText="Выберите дату окончания"
-            />
-          </div>
-        </Grid>
-        <Grid item xs={12}>
-          {formData.startDate && formData.endDate ? (
-            <>
-              <Typography variant="body2" className="checkout-modal__info">
-                Период аренды: с {formatDate(formData.startDate)} по {formatDate(formData.endDate)}
-              </Typography>
-              <Typography variant="body2" className="checkout-modal__info">
-                Количество дней: {rentalDays} {rentalDays === 1 ? 'день' : (rentalDays >= 2 && rentalDays <= 4) ? 'дня' : 'дней'}
-              </Typography>
-              <Typography variant="body2" className="checkout-modal__info">
-                Общая стоимость аренды: {totalRentalCost} ₽
-              </Typography>
-              <Typography variant="body2" className="checkout-modal__info">
-                Залог: {depositAmount} ₽ (возвращается после завершения аренды)
-              </Typography>
-            </>
-          ) : (
-            <Typography variant="body2" className="checkout-modal__info">
-              Выберите даты для расчета стоимости аренды
-            </Typography>
-          )}
-        </Grid>
-      </Grid>
-    );
-  };
-
-  // Содержимое шага способа оплаты
-  const renderPaymentMethodStep = () => (
-    <Grid container spacing={3} className="checkout-modal__payment">
-      <Grid item xs={12}>
-        <Typography variant="h6" className="checkout-modal__subtitle">
-          Выберите способ оплаты
-        </Typography>
-      </Grid>
-      <Grid item xs={12}>
-        <FormControl component="fieldset">
-          <FormLabel component="legend">Доступные способы оплаты</FormLabel>
-          <RadioGroup
-            aria-label="payment-method"
-            name="paymentMethod"
-            value={formData.paymentMethod}
-            onChange={handlePaymentMethodChange}
-          >
-            <FormControlLabel 
-              value="cash" 
-              control={<Radio />} 
-              label={
-                <Grid container alignItems="center" spacing={1}>
-                  <Grid item>
-                    <AttachMoneyIcon />
-                  </Grid>
-                  <Grid item>Наличными при получении</Grid>
-                </Grid>
-            }
-            />
-            <FormControlLabel 
-              value="card" 
-              control={<Radio />} 
-              label={
-                <Grid container alignItems="center" spacing={1}>
-                  <Grid item>
-                    <CreditCardIcon />
-                  </Grid>
-                  <Grid item>Картой при получении</Grid>
-                </Grid>
-              }
-            />
-          </RadioGroup>
-        </FormControl>
-      </Grid>
-      <Grid item xs={12}>
-        <Typography variant="body2" className="checkout-modal__info">
-          Оплату необходимо произвести в момент получения оборудования.
-        </Typography>
-        <Typography variant="body2" className="checkout-modal__info">
-          Также при получении необходимо внести залог в размере {(cart.subtotal * 0.5).toFixed(2)} ₽,
-          который будет возвращен после завершения аренды и возврата оборудования в исправном состоянии.
-        </Typography>
-      </Grid>
-    </Grid>
-  );
-
-  // Содержимое шага доставки
-  const renderDeliveryStep = () => (
-    <Grid container spacing={3} className="checkout-modal__delivery">
-      <Grid item xs={12}>
-        <Typography variant="h6" className="checkout-modal__subtitle">
-          Адрес доставки
-        </Typography>
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          label="ФИО"
-          name="fullName"
-          value={formData.fullName}
-          onChange={handleChange}
-          fullWidth
-          required
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          label="Телефон"
-          name="phone"
-          value={formData.phone}
-          onChange={handleChange}
-          fullWidth
-          required
-          placeholder="+7 (000) 000-00-00"
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          label="Город"
-          name="city"
-          value={formData.city}
-          onChange={handleChange}
-          fullWidth
-          required
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          label="Адрес"
-          name="address"
-          value={formData.address}
-          onChange={handleChange}
-          fullWidth
-          required
-          placeholder="Улица, дом, квартира"
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          label="Почтовый индекс"
-          name="postalCode"
-          value={formData.postalCode}
-          onChange={handleChange}
-          fullWidth
-          required
-        />
-      </Grid>
-    </Grid>
-  );
-
-  // Содержимое успешного оформления заказа
-  const renderCompletedStep = () => {
-    const rentalDays = calculateRentalDays();
-    
-    return (
-    <div className="checkout-modal__completed">
-      <CheckCircleOutlineIcon className="checkout-modal__success-icon" />
-      <Typography variant="h5" className="checkout-modal__success-title">
-        Заказ успешно оформлен
-      </Typography>
-      <Typography variant="body1" className="checkout-modal__success-text">
-          Благодарим за ваш заказ! Вы арендовали оборудование на {rentalDays} {rentalDays === 1 ? 'день' : (rentalDays >= 2 && rentalDays <= 4) ? 'дня' : 'дней'} 
-          с {formatDate(formData.startDate)} по {formatDate(formData.endDate)}.
-          Оплата будет произведена {formData.paymentMethod === 'cash' ? 'наличными' : 'картой'} при получении.
-        Информация о заказе отправлена на вашу электронную почту.
-      </Typography>
-      <Button 
-        variant="contained" 
-        color="primary" 
-        className="checkout-modal__success-button"
-        onClick={handleCloseModal}
-      >
-        Вернуться в магазин
-      </Button>
-    </div>
-  );
-  };
-
-  // Определение содержимого активного шага
-  const getStepContent = (step: number) => {
-    switch (step) {
-      case 0:
-        return renderRentalStep();
-      case 1:
-        return renderPaymentMethodStep();
-      case 2:
-        return renderDeliveryStep();
-      default:
-        return 'Неизвестный шаг';
-    }
-  };
-
   return (
     <Dialog
       open={open}
       onClose={handleCloseModal}
+      maxWidth="md"
       fullWidth
-      maxWidth="sm"
       className="checkout-modal"
     >
-      <DialogTitle className="checkout-modal__title">
-        {completed ? 'Заказ оформлен' : 'Оформление заказа'}
-        <IconButton
-          aria-label="close"
-          onClick={handleCloseModal}
-          className="checkout-modal__close-button"
-        >
-          <CloseIcon />
-        </IconButton>
+      <DialogTitle>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">Оформление заказа</Typography>
+          <IconButton onClick={handleCloseModal} size="small">
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </DialogTitle>
-      
+
       <DialogContent className="checkout-modal__content">
-        {completed ? (
-          renderCompletedStep()
-        ) : (
+        {!completed ? (
           <>
             <Stepper activeStep={activeStep} className="checkout-modal__stepper">
-              {steps.map((label) => (
+              {steps.map((label, index) => (
                 <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
+                  <StepLabel 
+                    StepIconProps={{
+                      icon: index === 0 ? <DateRangeIcon /> : 
+                            index === 1 ? <PaymentIcon /> : 
+                            <LocalShippingIcon />
+                    }}
+                  >
+                    {label}
+                  </StepLabel>
                 </Step>
               ))}
             </Stepper>
-            
-            <div className="checkout-modal__step-content">
-              {getStepContent(activeStep)}
-            </div>
-          </>
-        )}
-      </DialogContent>
-      
-      {!completed && (
-        <DialogActions className="checkout-modal__actions">
-          <Button 
-            onClick={handleCloseModal} 
-            color="inherit"
-            className="checkout-modal__cancel-button"
-          >
-            Отмена
-          </Button>
-          <div>
-            {activeStep > 0 && (
-              <Button 
-                onClick={handleBack} 
-                className="checkout-modal__back-button"
+
+            <Box className="checkout-modal__step-content">
+              {activeStep === 0 && (
+                <Box className="checkout-modal__form-section">
+                  <Typography variant="h6" className="checkout-modal__section-title">
+                    <DateRangeIcon /> Выберите даты аренды
+                  </Typography>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <DatePicker
+                        selected={formData.startDate}
+                        onChange={handleStartDateChange}
+                        selectsStart
+                        startDate={formData.startDate}
+                        endDate={formData.endDate}
+                        minDate={today}
+                        className="datepicker-input"
+                        placeholderText="Выберите дату начала"
+                        locale="ru"
+                        customInput={
+                          <TextField 
+                            fullWidth 
+                            variant="outlined"
+                            InputProps={{
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <DateRangeIcon color="action" />
+                                </InputAdornment>
+                              ),
+                            }}
+                          />
+                        }
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <DatePicker
+                        selected={formData.endDate}
+                        onChange={handleEndDateChange}
+                        selectsEnd
+                        startDate={formData.startDate}
+                        endDate={formData.endDate}
+                        minDate={formData.startDate ? new Date(formData.startDate.getTime() + 24 * 60 * 60 * 1000) : undefined}
+                        className="datepicker-input"
+                        placeholderText="Выберите дату окончания"
+                        locale="ru"
+                        customInput={
+                          <TextField 
+                            fullWidth 
+                            variant="outlined"
+                            InputProps={{
+                              endAdornment: (
+                                <InputAdornment position="end">
+                                  <DateRangeIcon color="action" />
+                                </InputAdornment>
+                              ),
+                            }}
+                          />
+                        }
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
+
+              {activeStep === 1 && (
+                <Box className="checkout-modal__form-section">
+                  <Typography variant="h6" className="checkout-modal__section-title">
+                    <PaymentIcon /> Способ оплаты
+                  </Typography>
+                  <RadioGroup
+                    value={formData.paymentMethod}
+                    onChange={handlePaymentMethodChange}
+                    className="checkout-modal__payment-options"
+                  >
+                    <FormControlLabel
+                      value="cash"
+                      control={<Radio />}
+                      label={
+                        <div className="checkout-modal__payment-option">
+                          <AttachMoneyIcon className="checkout-modal__payment-icon" />
+                          <div className="checkout-modal__payment-info">
+                            <Typography variant="body1" className="checkout-modal__payment-title">
+                              Наличными при получении
+                            </Typography>
+                            <Typography variant="body2" className="checkout-modal__payment-description">
+                              Оплата наличными при получении товара
+                            </Typography>
+                          </div>
+                        </div>
+                      }
+                    />
+                    <FormControlLabel
+                      value="card"
+                      control={<Radio />}
+                      label={
+                        <div className="checkout-modal__payment-option">
+                          <CreditCardIcon className="checkout-modal__payment-icon" />
+                          <div className="checkout-modal__payment-info">
+                            <Typography variant="body1" className="checkout-modal__payment-title">
+                              Картой при получении
+                            </Typography>
+                            <Typography variant="body2" className="checkout-modal__payment-description">
+                              Оплата картой при получении товара
+                            </Typography>
+                          </div>
+                        </div>
+                      }
+                    />
+                  </RadioGroup>
+                </Box>
+              )}
+
+              {activeStep === 2 && (
+                <Box className="checkout-modal__form-section">
+                  <Typography variant="h6" className="checkout-modal__section-title">
+                    <LocalShippingIcon /> Информация о доставке
+                  </Typography>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Имя"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleChange}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <PersonIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Телефон"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <PhoneIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Город"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleChange}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <LocationCityIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Адрес"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <HomeIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Почтовый индекс"
+                        name="postalCode"
+                        value={formData.postalCode}
+                        onChange={handleChange}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <MarkunreadMailboxIcon fontSize="small" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <Paper elevation={0} className="checkout-modal__delivery-info">
+                    <Typography variant="subtitle2" className="checkout-modal__delivery-info-title">
+                      <LocalShippingIcon className="checkout-modal__delivery-icon" />
+                      Информация о доставке
+                    </Typography>
+                    <Typography variant="body2" className="checkout-modal__delivery-details">
+                      Доставка осуществляется в течение 1-2 рабочих дней после оформления заказа.
+                      Стоимость доставки включена в итоговую сумму заказа.
+                    </Typography>
+                  </Paper>
+                </Box>
+              )}
+            </Box>
+
+            <Box className="checkout-modal__actions">
+              <Button
+                onClick={handleBack}
+                disabled={activeStep === 0}
+                variant="outlined"
               >
                 Назад
               </Button>
-            )}
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}
+              >
+                {activeStep === steps.length - 1 ? 'Оформить заказ' : 'Далее'}
+              </Button>
+            </Box>
+          </>
+        ) : (
+          <Box className="checkout-modal__completed">
+            <CheckCircleOutlineIcon className="checkout-modal__success-icon" />
+            <Typography variant="h5" className="checkout-modal__success-title">
+              Заказ успешно оформлен
+            </Typography>
+            <Typography variant="body1" className="checkout-modal__success-message">
+              Спасибо за ваш заказ! Мы свяжемся с вами в ближайшее время для подтверждения.
+            </Typography>
             <Button
               variant="contained"
               color="primary"
-              onClick={handleNext}
-              disabled={!isStepValid()}
-              className="checkout-modal__next-button"
+              onClick={handleCloseModal}
+              size="large"
             >
-              {activeStep === steps.length - 1 ? 'Оформить заказ' : 'Далее'}
+              Закрыть
             </Button>
-          </div>
-        </DialogActions>
-      )}
+          </Box>
+        )}
+      </DialogContent>
     </Dialog>
   );
 };

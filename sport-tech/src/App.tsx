@@ -13,10 +13,12 @@ import AdminPanel from './pages/AdminPanel/AdminPanel';
 import LoginModal from './components/Auth/LoginModal';
 import RegisterModal from './components/Auth/RegisterModal';
 import CartNotification from './components/CartNotification/CartNotification';
+import CheckoutSuccessPage from './pages/CheckoutSuccessPage/CheckoutSuccessPage';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ReviewsProvider } from './context/ReviewsContext';
 import { OrderProvider } from './context/OrderContext';
+import { OrdersProvider } from './context/OrdersContext';
 import { useCart } from './context/CartContext';
 import { useAuth } from './context/AuthContext';
 
@@ -82,6 +84,7 @@ function App() {
       <CartProvider>
         <ReviewsProvider>
           <OrderProvider>
+            <OrdersProvider>
             <BrowserRouter>
               <AppLayout>
                 <Routes>
@@ -91,6 +94,7 @@ function App() {
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/search" element={<SearchPage />} />
                   <Route path="/contacts" element={<ContactsPage />} />
+                    <Route path="/checkout-success" element={<CheckoutSuccessPage />} />
                   <Route 
                     path="/profile" 
                     element={
@@ -110,6 +114,7 @@ function App() {
                 </Routes>
               </AppLayout>
             </BrowserRouter>
+            </OrdersProvider>
           </OrderProvider>
         </ReviewsProvider>
       </CartProvider>

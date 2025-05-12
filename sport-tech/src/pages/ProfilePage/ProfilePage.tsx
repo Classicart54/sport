@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Container, 
   Box, 
@@ -25,26 +25,28 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  Divider,
+  List,
+  ListItem
 } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
-import { useOrders } from '../../context/OrderContext';
+import { useOrders, OrderData } from '../../context/OrdersContext';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import EditIcon from '@mui/icons-material/Edit';
 import HistoryIcon from '@mui/icons-material/History';
 import CancelIcon from '@mui/icons-material/Cancel';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { User } from '../../types/interfaces';
 import './ProfilePage.scss';
-
-// Интерфейс для заказа и OrderItem импортируем из OrderContext
-import { Order, OrderItem } from '../../context/OrderContext';
+import { useLocation } from 'react-router-dom';
 
 // Получение статуса заказа для отображения
 const getStatusLabel = (status: string): string => {
   switch (status) {
     case 'active':
-      return 'Активен';
+      return 'Активный';
     case 'completed':
       return 'Завершен';
     case 'cancelled':
@@ -58,9 +60,9 @@ const getStatusLabel = (status: string): string => {
 const getStatusColor = (status: string): "success" | "error" | "default" | "warning" => {
   switch (status) {
     case 'active':
-      return 'success';
+      return 'warning';
     case 'completed':
-      return 'default';
+      return 'success';
     case 'cancelled':
       return 'error';
     default:
@@ -68,10 +70,25 @@ const getStatusColor = (status: string): "success" | "error" | "default" | "warn
   }
 };
 
+// Форматирование даты
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('ru-RU', {
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric'
+    }).format(date);
+  } catch (error) {
+    return 'Некорректная дата';
+  }
+};
+
 const ProfilePage: React.FC = () => {
   const { auth, updateProfile } = useAuth();
-  const { getUserOrders, updateOrderStatus } = useOrders(); // Используем контекст заказов
+  const { userOrders, updateOrderStatus } = useOrders();
   const [activeTab, setActiveTab] = useState(0);
+  const location = useLocation();
   const [editMode, setEditMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{
@@ -93,6 +110,15 @@ const ProfilePage: React.FC = () => {
     orderId: null
   });
   
+  // Состояние для диалога деталей заказа
+  const [orderDetailsDialog, setOrderDetailsDialog] = useState<{
+    open: boolean;
+    order: OrderData | null;
+  }>({
+    open: false,
+    order: null
+  });
+  
   // Начальные данные пользователя
   const [userData, setUserData] = useState({
     firstName: auth.user?.firstName || '',
@@ -101,6 +127,15 @@ const ProfilePage: React.FC = () => {
     phone: auth.user?.phone || '',
     city: auth.user?.city || ''
   });
+
+  // Обработка параметра tab из URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab === 'orders') {
+      setActiveTab(1);
+    }
+  }, [location]);
 
   // Обработка смены вкладки
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -172,9 +207,6 @@ const ProfilePage: React.FC = () => {
   const handleSaveProfile = async () => {
     setIsLoading(true);
     try {
-      console.log('Попытка сохранения профиля с данными:', userData);
-      console.log('Интерфейс User ожидает поля:', 'firstName, lastName, email, phone, city');
-      
       // Прямое приведение к типу, который ожидает updateProfile и соответствует интерфейсу User
       const userDataToUpdate: Omit<User, 'id'> = {
         firstName: userData.firstName,
@@ -187,10 +219,7 @@ const ProfilePage: React.FC = () => {
         avatar: auth.user?.avatar
       };
       
-      console.log('Подготовленные данные для отправки:', userDataToUpdate);
-      
       const success = await updateProfile(userDataToUpdate);
-      console.log('Результат обновления профиля:', success);
       
       if (success) {
         setEditMode(false);
@@ -230,272 +259,217 @@ const ProfilePage: React.FC = () => {
     setEditMode(false);
   };
 
+  // Открытие диалога деталей заказа
+  const handleOpenOrderDetails = (order: OrderData) => {
+    setOrderDetailsDialog({ open: true, order });
+  };
+
+  // Закрытие диалога деталей заказа
+  const handleCloseOrderDetails = () => {
+    setOrderDetailsDialog({ open: false, order: null });
+  };
+
   // Рендеринг таблицы заказов
   const renderOrdersTab = () => {
-    // Получаем заказы текущего пользователя
-    const userOrders = auth.user ? getUserOrders(auth.user.id) : [];
-    
-    return (
-      <div className="profile-page__orders">
-        <Typography variant="h6" className="profile-page__section-title">
-          История заказов
-        </Typography>
-        
-        {userOrders.length === 0 ? (
-          <Typography variant="body1" className="profile-page__no-orders">
+    // Используем заказы из нового контекста
+    if (!userOrders || userOrders.length === 0) {
+      return (
+        <Box sx={{ textAlign: 'center', p: 3 }}>
+          <Typography variant="body1" color="textSecondary">
             У вас пока нет заказов
           </Typography>
-        ) : (
-          <TableContainer component={Paper} className="profile-page__table-container">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>№ Заказа</TableCell>
-                  <TableCell>Дата</TableCell>
-                  <TableCell>Товары</TableCell>
-                  <TableCell>Стоимость</TableCell>
-                  <TableCell>Срок аренды</TableCell>
-                  <TableCell>Дата возврата</TableCell>
-                  <TableCell>Статус</TableCell>
-                  <TableCell>Действия</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {userOrders.map((order) => (
-                  <TableRow key={order.id} className="profile-page__order-row">
-                    <TableCell>{order.id}</TableCell>
-                    <TableCell>{order.date}</TableCell>
-                    <TableCell>
-                      <div className="profile-page__order-items">
-                        {order.items.map((item) => (
-                          <div key={item.id} className="profile-page__order-item">
-                            {item.name} x{item.quantity}
-                          </div>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>{order.totalAmount} ₽</TableCell>
-                    <TableCell>{order.rentalDays} дней</TableCell>
-                    <TableCell>{order.returnDate}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={getStatusLabel(order.status)} 
-                        color={getStatusColor(order.status)}
-                        size="small"
-                        className="profile-page__status-chip"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {order.status === 'active' && (
-                        <IconButton 
-                          color="error" 
-                          size="small" 
-                          onClick={() => handleOpenCancelDialog(order.id)}
-                          title="Отменить заказ"
-                          className="profile-page__cancel-button"
-                        >
-                          <CancelIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </div>
+        </Box>
+      );
+    }
+
+    return (
+      <TableContainer component={Paper}>
+        <Table sx={{ minWidth: 900 }} aria-label="таблица заказов">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ width: '10%' }}>№ заказа</TableCell>
+              <TableCell sx={{ width: '30%' }}>Товары</TableCell>
+              <TableCell sx={{ width: '15%' }}>Дата оформления</TableCell>
+              <TableCell sx={{ width: '15%' }}>Дата возврата</TableCell>
+              <TableCell sx={{ width: '10%' }}>Сумма</TableCell>
+              <TableCell sx={{ width: '10%' }}>Статус</TableCell>
+              <TableCell align="center" sx={{ width: '10%' }}>Действия</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {userOrders.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell component="th" scope="row">#{order.id}</TableCell>
+                <TableCell>
+                  <Typography variant="body2" noWrap title={order.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}>
+                    {order.items.slice(0, 2).map(item => `${item.name} (x${item.quantity})`).join(', ')}
+                    {order.items.length > 2 ? ', ...' : ''}
+                  </Typography>
+                </TableCell>
+                <TableCell>{formatDate(order.createdAt)}</TableCell>
+                <TableCell>{order.returnDate}</TableCell>
+                <TableCell>{order.totalAmount.toFixed(2)} ₽</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={getStatusLabel(order.status)} 
+                    color={getStatusColor(order.status)} 
+                    size="small" 
+                  />
+                </TableCell>
+                <TableCell align="center"> 
+                  <IconButton 
+                    size="small" 
+                    color="primary"
+                    onClick={() => handleOpenOrderDetails(order)}
+                    sx={{ mr: 0.5 }}
+                    title="Просмотр деталей"
+                  >
+                    <VisibilityIcon fontSize="small" />
+                  </IconButton>
+                  {order.status === 'active' && (
+                    <IconButton 
+                      size="small" 
+                      color="error"
+                      onClick={() => handleOpenCancelDialog(order.id)}
+                      title="Отменить заказ"
+                    >
+                      <CancelIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     );
   };
 
   // Рендеринг вкладки профиля
   const renderProfileTab = () => (
     <div className="profile-page__profile">
-      <Typography variant="h6" className="profile-page__section-title">
-        Личные данные
-      </Typography>
-      
-      <Paper className="profile-page__profile-card">
-        <div className="profile-page__profile-header">
-          <Avatar className="profile-page__avatar">
-            {userData.firstName.charAt(0)}{userData.lastName.charAt(0)}
-          </Avatar>
-          
+      <div className="profile-page__avatar-section">
+        <Avatar className="profile-page__avatar">
+          {auth.user?.firstName?.[0] || 'U'}
+        </Avatar>
+        <Typography variant="h6" className="profile-page__username">
+          {`${auth.user?.firstName || ''} ${auth.user?.lastName || ''}`}
+        </Typography>
+        <Typography variant="body2" className="profile-page__email">
+          {auth.user?.email || ''}
+        </Typography>
+      </div>
+
+      <Paper className="profile-page__info-section">
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h6">
+            Информация пользователя
+          </Typography>
           {!editMode && (
             <Button 
-              variant="outlined" 
-              startIcon={<EditIcon />}
+              startIcon={<EditIcon />} 
               onClick={handleEditProfile}
-              className="profile-page__edit-button"
             >
               Редактировать
             </Button>
           )}
-        </div>
-        
-        {editMode ? (
-          <div className="profile-page__edit-form">
-            <Stack spacing={2}>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField
-                  fullWidth
-                  label="Имя"
-                  name="firstName"
-                  value={userData.firstName}
-                  onChange={handleInputChange}
-                  variant="outlined"
-                />
-                <TextField
-                  fullWidth
-                  label="Фамилия"
-                  name="lastName"
-                  value={userData.lastName}
-                  onChange={handleInputChange}
-                  variant="outlined"
-                />
-              </Stack>
-              
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                value={userData.email}
-                onChange={handleInputChange}
-                variant="outlined"
-                type="email"
-              />
-              
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField
-                  fullWidth
-                  label="Телефон"
-                  name="phone"
-                  value={userData.phone}
-                  onChange={handleInputChange}
-                  variant="outlined"
-                />
-                <TextField
-                  fullWidth
-                  label="Город"
-                  name="city"
-                  value={userData.city}
-                  onChange={handleInputChange}
-                  variant="outlined"
-                />
-              </Stack>
-              
-              <Box className="profile-page__action-buttons">
-                <Button 
-                  variant="outlined" 
-                  onClick={handleCancelEdit}
-                  className="profile-page__cancel-button"
-                  disabled={isLoading}
-                >
-                  Отмена
-                </Button>
-                <Button 
-                  variant="contained" 
-                  onClick={handleSaveProfile}
-                  className="profile-page__save-button"
-                  disabled={isLoading}
-                >
-                  {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Сохранить'}
-                </Button>
-              </Box>
-            </Stack>
-          </div>
-        ) : (
-          <div className="profile-page__info">
-            <div className="profile-page__info-row">
-              <Typography variant="body2" className="profile-page__info-label">
-                Имя:
-              </Typography>
-              <Typography variant="body1" className="profile-page__info-value">
-                {userData.firstName} {userData.lastName}
-              </Typography>
-            </div>
-            <div className="profile-page__info-row">
-              <Typography variant="body2" className="profile-page__info-label">
-                Email:
-              </Typography>
-              <Typography variant="body1" className="profile-page__info-value">
-                {userData.email}
-              </Typography>
-            </div>
-            <div className="profile-page__info-row">
-              <Typography variant="body2" className="profile-page__info-label">
-                Телефон:
-              </Typography>
-              <Typography variant="body1" className="profile-page__info-value">
-                {userData.phone || 'Не указан'}
-              </Typography>
-            </div>
-            <div className="profile-page__info-row">
-              <Typography variant="body2" className="profile-page__info-label">
-                Город:
-              </Typography>
-              <Typography variant="body1" className="profile-page__info-value">
-                {userData.city || 'Не указан'}
-              </Typography>
-            </div>
-          </div>
-        )}
+        </Box>
+
+        <form noValidate>
+          <Stack spacing={2}>
+            <TextField
+              label="Имя"
+              name="firstName"
+              value={userData.firstName}
+              onChange={handleInputChange}
+              fullWidth
+              disabled={!editMode}
+              variant={editMode ? "outlined" : "filled"}
+            />
+            <TextField
+              label="Фамилия"
+              name="lastName"
+              value={userData.lastName}
+              onChange={handleInputChange}
+              fullWidth
+              disabled={!editMode}
+              variant={editMode ? "outlined" : "filled"}
+            />
+            <TextField
+              label="Email"
+              name="email"
+              type="email"
+              value={userData.email}
+              onChange={handleInputChange}
+              fullWidth
+              disabled={!editMode}
+              variant={editMode ? "outlined" : "filled"}
+            />
+            <TextField
+              label="Телефон"
+              name="phone"
+              value={userData.phone}
+              onChange={handleInputChange}
+              fullWidth
+              disabled={!editMode}
+              variant={editMode ? "outlined" : "filled"}
+            />
+            <TextField
+              label="Город"
+              name="city"
+              value={userData.city}
+              onChange={handleInputChange}
+              fullWidth
+              disabled={!editMode}
+              variant={editMode ? "outlined" : "filled"}
+            />
+          </Stack>
+
+          {editMode && (
+            <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
+              <Button 
+                variant="outlined" 
+                onClick={handleCancelEdit}
+                disabled={isLoading}
+              >
+                Отмена
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={handleSaveProfile}
+                disabled={isLoading}
+                startIcon={isLoading ? <CircularProgress size={20} /> : null}
+              >
+                Сохранить
+              </Button>
+            </Box>
+          )}
+        </form>
       </Paper>
     </div>
   );
 
   return (
-    <Container maxWidth="lg" className="profile-page">
-      <Box className="profile-page__header">
-        <Typography variant="h4" component="h1" className="profile-page__title">
-          Личный кабинет
-        </Typography>
-      </Box>
-      
-      <Box className="profile-page__content">
-        <Paper className="profile-page__tabs-container">
-          <Tabs
-            value={activeTab}
+    <div className="profile-page">
+      <Container>
+        <Paper className="profile-page__paper">
+          <Tabs 
+            value={activeTab} 
             onChange={handleTabChange}
-            className="profile-page__tabs"
             variant="fullWidth"
+            className="profile-page__tabs"
           >
-            <Tab 
-              icon={<AccountCircleIcon />}
-              label="Профиль" 
-              className="profile-page__tab"
-              aria-label="Профиль"
-            />
-            <Tab 
-              icon={<ShoppingBagIcon />}
-              label="Мои заказы" 
-              className="profile-page__tab" 
-              aria-label="Мои заказы"
-            />
+            <Tab label="Профиль" icon={<AccountCircleIcon />} />
+            <Tab label="Заказы" icon={<ShoppingBagIcon />} />
           </Tabs>
-        </Paper>
-        
-        <Box className="profile-page__tab-content">
-          {activeTab === 0 ? renderProfileTab() : renderOrdersTab()}
-        </Box>
-      </Box>
 
-      {/* Уведомление об успешном обновлении профиля */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-      
+          <Box className="profile-page__content">
+            {activeTab === 0 && renderProfileTab()}
+            {activeTab === 1 && renderOrdersTab()}
+          </Box>
+        </Paper>
+      </Container>
+
       {/* Диалог подтверждения отмены заказа */}
       <Dialog
         open={cancelDialog.open}
@@ -504,20 +478,79 @@ const ProfilePage: React.FC = () => {
         <DialogTitle>Отмена заказа</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Вы уверены, что хотите отменить заказ №{cancelDialog.orderId}? 
-            Это действие невозможно отменить.
+            Вы уверены, что хотите отменить заказ #{cancelDialog.orderId}?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseCancelDialog} color="primary">
-            Отмена
-          </Button>
-          <Button onClick={handleCancelOrder} color="error" variant="contained">
+          <Button onClick={handleCloseCancelDialog}>Отмена</Button>
+          <Button onClick={handleCancelOrder} color="error" autoFocus>
             Отменить заказ
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+
+      {/* Диалог деталей заказа */}
+      <Dialog
+        open={orderDetailsDialog.open}
+        onClose={handleCloseOrderDetails}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          Детали заказа #{orderDetailsDialog.order?.id}
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          {orderDetailsDialog.order && (
+            <Box>
+              <Typography variant="body2" color="textSecondary" gutterBottom>
+                Оформлен: {formatDate(orderDetailsDialog.order.createdAt)}
+              </Typography>
+              <Divider sx={{ my: 1.5 }} />
+              <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 'bold' }}>Товары:</Typography>
+              <List dense sx={{ mb: 1.5, pl: 1 }}>
+                {orderDetailsDialog.order.items.map(item => (
+                  <ListItem key={item.id} disablePadding sx={{ mb: 0.5 }}>
+                    <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                      {item.name} (x{item.quantity})
+                    </Typography>
+                    <Typography variant="body2" sx={{ ml: 1 }}>
+                      {(item.price * item.quantity).toFixed(2)} ₽
+                    </Typography>
+                  </ListItem>
+                ))}
+              </List>
+              <Divider sx={{ my: 1.5 }} />
+              <Typography variant="body2"><b>Период аренды:</b> {orderDetailsDialog.order.rentalDays} {orderDetailsDialog.order.rentalDays === 1 ? 'день' : 'дней'}</Typography>
+              <Typography variant="body2"><b>Дата возврата:</b> {orderDetailsDialog.order.returnDate}</Typography>
+              <Typography variant="body2"><b>Способ оплаты:</b> {orderDetailsDialog.order.contactInfo?.paymentMethod === 'cash' ? 'Наличными' : 'Картой'} при получении</Typography>
+              <Typography variant="body2"><b>Адрес доставки:</b> {orderDetailsDialog.order.contactInfo?.address}</Typography>
+              <Typography variant="body1" sx={{ mt: 2, fontWeight: 'bold', textAlign: 'right' }}>
+                Итого: {orderDetailsDialog.order.totalAmount.toFixed(2)} ₽
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseOrderDetails}>Закрыть</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Снекбар для уведомлений */}
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </div>
   );
 };
 

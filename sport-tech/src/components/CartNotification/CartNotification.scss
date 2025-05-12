@@ -1,54 +1,22 @@
+/* 
+Стили для .cart-notification теперь в основном управляются 
+через Snackbar и Alert в самом компоненте. 
+Оставляем класс на случай специфических переопределений,
+но основные стили удалены.
+*/
 .cart-notification {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999;
-  min-width: 320px;
-  background-color: white;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  border-left: 4px solid #4caf50;
-  
-  &__container {
-    display: flex;
-    align-items: center;
-    padding: 15px 20px;
+  // Можно добавить переопределения для Alert или Snackbar, если нужно
+  // Например, максимальную ширину:
+  .MuiAlert-root {
+    max-width: 400px; // Ограничиваем ширину для компактности
+    align-items: flex-start; // Выравниваем иконку и текст по верху
   }
-  
-  &__icon {
-    color: #4caf50;
-    margin-right: 15px;
+
+  .MuiAlert-message {
+    padding-top: 6px; // Небольшой отступ для текста
+    padding-bottom: 6px;
   }
-  
-  &__content {
-    flex: 1;
-  }
-  
-  &__title {
-    font-weight: 500 !important;
-    margin-bottom: 5px !important;
-    color: #333 !important;
-  }
-  
-  &__message {
-    font-size: 14px !important;
-    color: #666 !important;
-  }
-  
-  &__link {
-    margin-top: 10px !important;
-    display: inline-block;
-    color: #1976d2 !important;
-    text-decoration: none !important;
-    font-weight: 500 !important;
-    
-    &:hover {
-      text-decoration: underline !important;
-    }
-  }
-  
-  &__close {
-    color: #999;
-    margin-left: 10px;
-  }
-} 
+}
+
+/* Медиа-запросы тоже можно убрать или адаптировать под Alert */
+/* @media (max-width: 600px) { ... } */ 

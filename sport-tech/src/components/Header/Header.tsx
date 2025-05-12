@@ -41,15 +41,8 @@ const Header: FC = () => {
   };
 
   const goToOrders = () => {
-    navigate('/profile');
-    setAnchorEl(null);
-    // Задержка, чтобы сначала прошел переход на страницу профиля, а потом уже открылась вкладка с заказами
-    setTimeout(() => {
-      const ordersTab = document.querySelector('[aria-label="Мои заказы"]') as HTMLElement;
-      if (ordersTab) {
-        ordersTab.click();
-      }
-    }, 100);
+    navigate('/profile?tab=orders');
+    handleMenuClose();
   };
 
   // Обработчик отправки формы поиска

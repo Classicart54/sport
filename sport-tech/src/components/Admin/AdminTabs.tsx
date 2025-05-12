@@ -3,11 +3,13 @@ import { Box, Tabs, Tab, Typography } from '@mui/material';
 import { 
   Inventory2Outlined, 
   ShoppingCartOutlined, 
-  CommentOutlined
+  CommentOutlined,
+  ApiOutlined
 } from '@mui/icons-material';
 import ProductsManagement from './Tabs/ProductsManagement';
 import OrdersManagement from './Tabs/OrdersManagement';
 import ReviewsManagement from './Tabs/ReviewsManagement';
+import ApiSettings from './Tabs/ApiSettings';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -101,6 +103,12 @@ const AdminTabs: React.FC = () => {
             label="Отзывы" 
             {...a11yProps(2)} 
           />
+          <Tab 
+            icon={<ApiOutlined />} 
+            iconPosition="start" 
+            label="API" 
+            {...a11yProps(3)} 
+          />
         </Tabs>
       </Box>
       <TabPanel value={value} index={0}>
@@ -111,6 +119,9 @@ const AdminTabs: React.FC = () => {
       </TabPanel>
       <TabPanel value={value} index={2}>
         <ReviewsManagement />
+      </TabPanel>
+      <TabPanel value={value} index={3}>
+        <ApiSettings />
       </TabPanel>
     </Box>
   );

@@ -10,25 +10,34 @@ import { ProductApiService } from './services/productApiService';
 import { CategoryApiService } from './services/categoryApiService';
 import { AuthApiService } from './services/authApiService';
 import { ReviewApiService } from './services/reviewApiService';
+import { OrderApiService } from './services/orderApiService';
 
 // Экспортируем тип режима API
 export type { ApiMode };
 
 // Экспортируем классы сервисов
-export { ProductApiService, CategoryApiService, AuthApiService, ReviewApiService };
+export { 
+  ProductApiService, 
+  CategoryApiService, 
+  AuthApiService, 
+  ReviewApiService,
+  OrderApiService
+};
 
 // Экспортируем настроенные экземпляры сервисов
 export const productService = new ProductApiService();
 export const categoryService = new CategoryApiService();
 export const authService = new AuthApiService();
 export const reviewService = new ReviewApiService();
+export const orderService = new OrderApiService();
 
 // Экспортируем централизованный объект API
 export const apiService = {
   products: productService,
   categories: categoryService,
   auth: authService,
-  reviews: reviewService
+  reviews: reviewService,
+  orders: orderService
 };
 
 /**

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -14,7 +14,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogContentText,
   DialogActions,
   FormControl,
   InputLabel,
@@ -23,37 +22,36 @@ import {
   Divider,
   Snackbar,
   Alert,
-  Stack,
   Card,
   CardContent,
-  IconButton,
+  Grid,
   SelectChangeEvent,
-  Grid
+  TextField,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import { 
   Visibility as VisibilityIcon,
   Edit as EditIcon,
-  Close as CloseIcon,
   CalendarMonth as CalendarIcon,
+  ShoppingBag as ShoppingBagIcon,
   Person as PersonIcon,
-  ShoppingBag as ShoppingBagIcon
+  LocalShipping as ShippingIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../../context/AuthContext';
-import { useOrders, Order, OrderItem } from '../../../context/OrderContext';
-import { User } from '../../../types/interfaces';
-
-// Тип данных для отображения информации о пользователе в списке заказов
-type UserOrderData = {
-  id: number;
-  name: string;
-  email: string;
-};
+import { useOrder, Order } from '../../../context/OrderContext';
 
 // Получение статуса заказа для отображения
 const getStatusLabel = (status: string): string => {
   switch (status) {
-    case 'active':
-      return 'В аренде';
+    case 'new':
+      return 'Новый';
+    case 'processing':
+      return 'Обрабатывается';
+    case 'delivered':
+      return 'Доставлен';
     case 'completed':
       return 'Завершен';
     case 'cancelled':
@@ -66,8 +64,12 @@ const getStatusLabel = (status: string): string => {
 // Получение цвета для статуса заказа
 const getStatusColor = (status: string): "success" | "error" | "default" | "warning" => {
   switch (status) {
-    case 'active':
+    case 'new':
+      return 'default';
+    case 'processing':
       return 'warning';
+    case 'delivered':
+      return 'success';
     case 'completed':
       return 'success';
     case 'cancelled':
@@ -77,41 +79,58 @@ const getStatusColor = (status: string): "success" | "error" | "default" | "warn
   }
 };
 
-// Диалоги
+// Форматирование даты
+const formatDate = (dateString: string): string => {
+  try {
+    if (!dateString) return 'Не указана';
+    
+    const date = new Date(dateString);
+    // Проверка на валидность даты
+    if (isNaN(date.getTime())) return 'Дата не указана';
+    
+    return new Intl.DateTimeFormat('ru-RU', {
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric'
+    }).format(date);
+  } catch (error) {
+    return 'Дата не указана';
+  }
+};
+
+// Типы для диалогов
 type DetailsDialogState = {
   open: boolean;
   order: Order | null;
-  user: User | null;
 };
 
 type StatusDialogState = {
   open: boolean;
   order: Order | null;
-  status: 'active' | 'completed' | 'cancelled';
+  status: Order['status'];
 };
 
 const OrdersManagement: React.FC = () => {
-  // Получаем данные о пользователях из контекста авторизации
-  const { getAllUsers } = useAuth();
+  const { auth, getAllUsers } = useAuth();
+  const { orders, getAllOrders, updateOrderStatus, getUserOrders, resetOrdersToMock } = useOrder();
   
-  // Используем контекст заказов
-  const { orders, updateOrderStatus } = useOrders();
-  
-  // Состояние для хранения списка пользователей из AuthContext
-  const [users, setUsers] = useState<User[]>([]);
+  // Отладочный вывод для проверки наличия заказов
+  useEffect(() => {
+    const allOrders = getAllOrders();
+    console.log('Все заказы в системе:', allOrders);
+  }, [getAllOrders]);
   
   // Состояние для модального окна деталей заказа
   const [detailsDialog, setDetailsDialog] = useState<DetailsDialogState>({
     open: false,
-    order: null,
-    user: null
+    order: null
   });
   
   // Состояние для модального окна изменения статуса
   const [statusDialog, setStatusDialog] = useState<StatusDialogState>({
     open: false,
     order: null,
-    status: 'active'
+    status: 'new'
   });
   
   // Состояние для уведомлений
@@ -120,34 +139,55 @@ const OrdersManagement: React.FC = () => {
     message: '',
     severity: 'success' as 'success' | 'error'
   });
+
+  // Состояние для фильтрации заказов
+  const [userIdFilter, setUserIdFilter] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   
-  // Загрузка пользователей из AuthContext
-  useEffect(() => {
-    const allUsers = getAllUsers();
-    setUsers(allUsers);
-    console.log('Загруженные пользователи:', allUsers);
-  }, [getAllUsers]);
+  // Получаем всех пользователей
+  const allUsers = getAllUsers();
   
-  // Сортировка заказов от новых к старым
-  const sortedOrders = useMemo(() => {
-    // Создаем копию массива, чтобы не мутировать исходный
-    return [...orders].sort((a, b) => {
-      // Преобразуем даты из формата "дд.мм.гггг" в объекты Date для корректного сравнения
-      const dateA = a.date.split('.').reverse().join('-');
-      const dateB = b.date.split('.').reverse().join('-');
-      // Сортируем по убыванию (от новых к старым)
-      return new Date(dateB).getTime() - new Date(dateA).getTime();
-    });
-  }, [orders]);
+  // Получаем отфильтрованные заказы
+  const filteredOrders = React.useMemo(() => {
+    // Сначала получаем все заказы, и только потом фильтруем
+    let allOrders = getAllOrders();
+    
+    // Фильтрация по пользователю
+    if (userIdFilter !== null) {
+      return getUserOrders(userIdFilter);
+    }
+    
+    // Фильтрация по поисковому запросу
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      allOrders = allOrders.filter(order => 
+        order.id.toString().includes(term) || 
+        (order.contactInfo?.phone && order.contactInfo.phone.toLowerCase().includes(term)) ||
+        (order.contactInfo?.address && order.contactInfo.address.toLowerCase().includes(term)) ||
+        order.items.some(item => item.product?.name && item.product.name.toLowerCase().includes(term))
+      );
+    }
+    
+    return allOrders;
+  }, [getAllOrders, getUserOrders, userIdFilter, searchTerm]);
+  
+  // Сброс фильтров
+  const handleResetFilters = () => {
+    setUserIdFilter(null);
+    setSearchTerm('');
+  };
+  
+  // Обработчик изменения фильтра пользователя
+  const handleUserFilterChange = (event: SelectChangeEvent<string>) => {
+    const value = event.target.value;
+    setUserIdFilter(value === 'all' ? null : parseInt(value));
+  };
   
   // Открытие диалога деталей заказа
   const handleOpenDetails = (order: Order) => {
-    const user = users.find(u => u.id === order.userId) || null;
-    console.log('Пользователь для заказа:', user);
     setDetailsDialog({
       open: true,
-      order,
-      user
+      order
     });
   };
   
@@ -155,8 +195,7 @@ const OrdersManagement: React.FC = () => {
   const handleCloseDetails = () => {
     setDetailsDialog({
       open: false,
-      order: null,
-      user: null
+      order: null
     });
   };
   
@@ -174,7 +213,7 @@ const OrdersManagement: React.FC = () => {
     setStatusDialog({
       open: false,
       order: null,
-      status: 'active'
+      status: 'new'
     });
   };
   
@@ -209,7 +248,7 @@ const OrdersManagement: React.FC = () => {
   const handleStatusChange = (event: SelectChangeEvent) => {
     setStatusDialog({
       ...statusDialog,
-      status: event.target.value as 'active' | 'completed' | 'cancelled'
+      status: event.target.value as Order['status']
     });
   };
   
@@ -221,447 +260,412 @@ const OrdersManagement: React.FC = () => {
     });
   };
   
-  // Получение информации о пользователе по ID
-  const getUserInfo = (userId: number): UserOrderData => {
-    const user = users.find(u => u.id === userId);
+  // Рендеринг карточки с информацией о заказе
+  const renderOrderDetails = (order: Order) => {
+    if (!order) return null;
     
-    if (user) {
-      return {
-        id: user.id,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email
-      };
-    }
+    // Вычисляем правильную итоговую сумму
+    const calculatedTotal = order.items.reduce((total, item) => {
+      return total + (item.product?.price || 0) * (item.quantity || 1) * (item.days || 1);
+    }, 0);
     
-    return {
-      id: userId,
-      name: 'Неизвестный пользователь',
-      email: 'email@unknown.com'
-    };
+    return (
+      <Box sx={{ p: 1 }}>
+        {/* Основная информация о заказе */}
+        <Card variant="outlined" sx={{ mb: 3, boxShadow: '0 2px 4px rgba(0,0,0,0.08)' }}>
+          <CardContent sx={{ px: 3, py: 2 }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={4}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <CalendarIcon sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="body1">
+                    <strong>Дата создания:</strong><br /> 
+                    {formatDate(order.createdAt)}
+                  </Typography>
+                </Box>
+              </Grid>
+              
+              <Grid item xs={12} sm={4}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <CalendarIcon sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography variant="body1">
+                    <strong>Дата начала аренды:</strong><br />
+                    {formatDate(order.rentalStartDate)}
+                  </Typography>
+                </Box>
+              </Grid>
+              
+              <Grid item xs={12} sm={4}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <ShippingIcon sx={{ mr: 1, color: 'primary.main' }} />
+                  <Box>
+                    <Typography variant="body1" component="span">
+                      <strong>Статус заказа:</strong><br />
+                    </Typography>
+                    <Chip 
+                      size="small" 
+                      label={getStatusLabel(order.status)} 
+                      color={getStatusColor(order.status)}
+                      sx={{ mt: 0.5 }}
+                    />
+                  </Box>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+        
+        {/* Контактная информация */}
+        <Card variant="outlined" sx={{ mb: 3, boxShadow: '0 2px 4px rgba(0,0,0,0.08)' }}>
+          <CardContent sx={{ px: 3, py: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <PersonIcon sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="subtitle1" fontWeight={600}>
+                Контактная информация
+              </Typography>
+            </Box>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" gutterBottom>
+                  <strong>Телефон:</strong> {order.contactInfo?.phone || '-'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="body2" gutterBottom>
+                  <strong>Способ оплаты:</strong> {order.contactInfo?.paymentMethod === 'cash' ? 'Наличными' : 'Картой'} при получении
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="body2" gutterBottom>
+                  <strong>Адрес доставки:</strong> {order.contactInfo?.address || '-'}
+                </Typography>
+              </Grid>
+              {order.contactInfo?.comment && (
+                <Grid item xs={12}>
+                  <Typography variant="body2">
+                    <strong>Комментарий:</strong> {order.contactInfo?.comment}
+                  </Typography>
+                </Grid>
+              )}
+            </Grid>
+          </CardContent>
+        </Card>
+            
+        {/* Товары в заказе */}
+        <Card variant="outlined" sx={{ boxShadow: '0 2px 4px rgba(0,0,0,0.08)' }}>
+          <CardContent sx={{ px: 3, py: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <ShoppingBagIcon sx={{ mr: 1, color: 'primary.main' }} />
+                <Typography variant="subtitle1" fontWeight={600}>
+                  Товары в заказе
+                </Typography>
+              </Box>
+              <Box sx={{ bgcolor: '#f5f5f5', p: 1, borderRadius: 1, fontWeight: 'bold' }}>
+                Итого: {calculatedTotal > 0 ? calculatedTotal : order.totalAmount} ₽
+              </Box>
+            </Box>
+            
+            <TableContainer sx={{ maxHeight: 250 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: '#f9f9f9' }}>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Товар</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Количество</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold' }}>Дней аренды</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>Стоимость</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {order.items.length > 0 ? (
+                    order.items.map(item => (
+                      <TableRow key={item.id}>
+                        <TableCell>{item.product?.name || 'Товар не найден'}</TableCell>
+                        <TableCell align="center">{item.quantity || 1}</TableCell>
+                        <TableCell align="center">{item.days || 1}</TableCell>
+                        <TableCell align="right">
+                          {(item.product?.price || 0) * (item.quantity || 1) * (item.days || 1)} ₽
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center">Нет товаров в заказе</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
+      </Box>
+    );
   };
   
-  // Форматирование даты в читаемый вид
-  const formatDate = (dateString: string) => {
-    // Проверяем, что строка даты в формате "дд.мм.гггг"
-    if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateString)) {
-      const [day, month, year] = dateString.split('.').map(Number);
-      const date = new Date(year, month - 1, day);
-      return new Intl.DateTimeFormat('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }).format(date);
-    }
-    
-    // Если другой формат, пытаемся разобрать как новую дату
-    try {
-      const date = new Date(dateString);
-      return new Intl.DateTimeFormat('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }).format(date);
-    } catch (error) {
-      console.error('Ошибка форматирования даты:', error);
-      return dateString;
+  // Получаем имя пользователя по ID
+  const getUserName = (userId?: number): string => {
+    if (!userId) return 'Гость';
+    const user = allUsers.find(u => u.id === userId);
+    return user ? `${user.firstName} ${user.lastName}` : `Пользователь #${userId}`;
+  };
+  
+  // Обработчик для сброса заказов
+  const handleResetToMockData = () => {
+    if (window.confirm('Вы уверены, что хотите сбросить все заказы к начальным данным? Это действие нельзя отменить.')) {
+      resetOrdersToMock();
+      setSnackbar({
+        open: true,
+        message: 'Заказы успешно сброшены к начальным данным',
+        severity: 'success'
+      });
     }
   };
   
   return (
-    <Box sx={{ width: '100%' }}>
-      <Typography 
-        variant="h5" 
-        sx={{ 
-          mb: 3, 
-          color: '#1c2536', 
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1
-        }}
-      >
-        <ShoppingBagIcon sx={{ color: '#1565c0' }} />
-        Управление заказами
-      </Typography>
-      
-      <Paper 
-        elevation={0} 
-        sx={{ 
-          p: 3, 
-          mb: 3, 
-          borderRadius: '12px',
-          border: '1px solid #e5e7eb'
-        }}
-      >
-        <Typography 
-          variant="h6" 
-          sx={{ 
-            mb: 2, 
-            color: '#1c2536', 
-            fontWeight: 600 
-          }}
-        >
-          Список заказов
-        </Typography>
-        <Divider sx={{ mb: 3 }} />
-        
-        {sortedOrders.length === 0 ? (
-          <Box 
-            sx={{ 
-              textAlign: 'center', 
-              py: 5, 
-              color: '#6b7280',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 2
-            }}
-          >
-            <ShoppingBagIcon sx={{ fontSize: 60, color: '#9ca3af' }} />
-            <Typography variant="body1">
-            Заказы отсутствуют
+    <div className="orders-management">
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <Typography variant="h5" gutterBottom fontWeight={600}>
+            Управление заказами
           </Typography>
-          </Box>
-        ) : (
-          <TableContainer sx={{ borderRadius: '8px', boxShadow: 'none' }}>
-            <Table sx={{ minWidth: 1050 }}>
-              <TableHead>
-                <TableRow sx={{ 
-                  backgroundColor: '#f8fafc', 
-                  '& th': { fontWeight: 600, color: '#475569' } 
-                }}>
-                  <TableCell>№ Заказа</TableCell>
-                  <TableCell>Дата</TableCell>
-                  <TableCell>Клиент</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Сумма</TableCell>
-                  <TableCell>Срок аренды</TableCell>
-                  <TableCell>Дата возврата</TableCell>
-                  <TableCell>Статус</TableCell>
-                  <TableCell>Действия</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {sortedOrders.map((order) => {
-                  const userInfo = getUserInfo(order.userId);
-                  return (
-                    <TableRow 
-                      key={order.id} 
-                      sx={{ 
-                        '& td': { py: 1.5 },
-                        borderBottom: '1px solid #e5e7eb'
-                      }}
-                    >
-                      <TableCell><strong>#{order.id}</strong></TableCell>
-                      <TableCell>{formatDate(order.date)}</TableCell>
-                      <TableCell>{userInfo.name}</TableCell>
-                      <TableCell>{userInfo.email}</TableCell>
-                      <TableCell><strong>{order.totalAmount} ₽</strong></TableCell>
-                      <TableCell>{order.rentalDays} дн.</TableCell>
-                      <TableCell>{formatDate(order.returnDate)}</TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={getStatusLabel(order.status)} 
-                          color={getStatusColor(order.status)}
-                          size="small"
-                          sx={{ 
-                            fontWeight: 500,
-                            borderRadius: '6px'
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <IconButton 
-                            size="small"
-                            onClick={() => handleOpenDetails(order)}
-                            sx={{ 
-                              color: '#1976d2',
-                              bgcolor: 'rgba(25, 118, 210, 0.08)',
-                              '&:active': { bgcolor: 'rgba(25, 118, 210, 0.16)' }
-                            }}
-                          >
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton 
-                            size="small"
-                            onClick={() => handleOpenStatusDialog(order)}
-                            sx={{ 
-                              color: '#9c27b0',
-                              bgcolor: 'rgba(156, 39, 176, 0.08)',
-                              '&:active': { bgcolor: 'rgba(156, 39, 176, 0.16)' }
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+          <Typography variant="body1" color="text.secondary">
+            Просмотр и управление заказами клиентов
+          </Typography>
+        </div>
+        <Button 
+          variant="outlined"
+          color="warning"
+          onClick={handleResetToMockData}
+          title="Сбросить все заказы к начальным данным"
+        >
+          Сбросить данные
+        </Button>
+      </Box>
+      
+      {/* Фильтры */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="user-filter-label">Пользователь</InputLabel>
+              <Select
+                labelId="user-filter-label"
+                value={userIdFilter === null ? 'all' : userIdFilter.toString()}
+                label="Пользователь"
+                onChange={handleUserFilterChange}
+              >
+                <MenuItem value="all">Все пользователи</MenuItem>
+                {allUsers.map(user => (
+                  <MenuItem key={user.id} value={user.id.toString()}>
+                    {user.firstName} {user.lastName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField 
+              label="Поиск по ID, телефону, адресу, товарам" 
+              fullWidth
+              size="small"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                endAdornment: searchTerm ? (
+                  <IconButton size="small" onClick={() => setSearchTerm('')}>
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                ) : (
+                  <SearchIcon color="action" fontSize="small" />
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={2}>
+            <Button 
+              variant="outlined" 
+              fullWidth
+              onClick={handleResetFilters}
+            >
+              Сбросить
+            </Button>
+          </Grid>
+        </Grid>
       </Paper>
       
-      {/* Диалог для просмотра деталей заказа */}
+      {filteredOrders.length === 0 ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h6">Нет заказов</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {userIdFilter !== null 
+              ? 'У выбранного пользователя нет заказов' 
+              : searchTerm 
+                ? 'По вашему запросу ничего не найдено' 
+                : 'В данный момент в системе нет заказов'}
+          </Typography>
+        </Paper>
+      ) : (
+        <TableContainer component={Paper} sx={{ mt: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>ID</TableCell>
+                <TableCell>Дата</TableCell>
+                <TableCell>Пользователь</TableCell>
+                <TableCell>Контакт</TableCell>
+                <TableCell>Адрес</TableCell>
+                <TableCell>Товары</TableCell>
+                <TableCell>Сумма</TableCell>
+                <TableCell>Начало аренды</TableCell>
+                <TableCell>Статус</TableCell>
+                <TableCell>Действия</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredOrders.map(order => (
+                <TableRow key={order.id}>
+                  <TableCell>#{order.id}</TableCell>
+                  <TableCell>{formatDate(order.createdAt)}</TableCell>
+                  <TableCell>
+                    <Tooltip title={getUserName(order.contactInfo?.userId)}>
+                      <Chip 
+                        icon={<PersonIcon />} 
+                        label={getUserName(order.contactInfo?.userId)}
+                        size="small"
+                        color={order.contactInfo?.userId ? "primary" : "default"}
+                        variant="outlined"
+                      />
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>{order.contactInfo?.phone || '-'}</TableCell>
+                  <TableCell>{order.contactInfo?.address || '-'}</TableCell>
+                  <TableCell>
+                    {order.items.length} {order.items.length === 1 ? 'товар' : 
+                    order.items.length < 5 ? 'товара' : 'товаров'}
+                  </TableCell>
+                  <TableCell>{order.totalAmount} ₽</TableCell>
+                  <TableCell>{formatDate(order.rentalStartDate)}</TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={getStatusLabel(order.status)} 
+                      color={getStatusColor(order.status)}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<VisibilityIcon />}
+                      sx={{ mr: 1, mb: { xs: 1, md: 0 } }}
+                      onClick={() => handleOpenDetails(order)}
+                    >
+                      Детали
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      size="small"
+                      startIcon={<EditIcon />}
+                      onClick={() => handleOpenStatusDialog(order)}
+                    >
+                      Статус
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+      
+      {/* Диалог с деталями заказа */}
       <Dialog
         open={detailsDialog.open}
         onClose={handleCloseDetails}
         maxWidth="md"
         fullWidth
-        PaperProps={{
-          sx: { borderRadius: '12px' }
+        PaperProps={{ 
+          sx: { 
+            borderRadius: '8px',
+            overflow: 'hidden'
+          } 
         }}
       >
-        <DialogTitle>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Детали заказа №{detailsDialog.order?.id}
+        <DialogTitle sx={{ 
+          bgcolor: 'primary.main', 
+          color: 'white',
+          px: 3,
+          py: 2
+        }}>
+          Детали заказа #{detailsDialog.order?.id || ''}
+          {detailsDialog.order?.contactInfo?.userId && (
+            <Typography variant="subtitle1" color="white">
+              Пользователь: {getUserName(detailsDialog.order.contactInfo.userId)}
             </Typography>
-            <IconButton 
-              onClick={handleCloseDetails} 
-              size="small"
-              sx={{ 
-                bgcolor: '#f1f5f9',
-                '&:active': { bgcolor: '#e2e8f0' }
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <DialogContent dividers>
-          {detailsDialog.order && detailsDialog.user && (
-            <Stack spacing={3}>
-              <Grid container spacing={3}>
-                {/* Информация о заказе */}
-                <Grid item xs={12} md={6}>
-                  <Card 
-                    variant="outlined" 
-                    sx={{ 
-                      height: '100%',
-                      borderRadius: '10px',
-                      borderColor: '#e5e7eb'
-                    }}
-                  >
-                  <CardContent>
-                      <Typography 
-                        variant="h6" 
-                        gutterBottom 
-                        sx={{ 
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1
-                        }}
-                      >
-                        <CalendarIcon sx={{ color: '#1565c0' }} />
-                      Информация о заказе
-                    </Typography>
-                      <Box sx={{ mt: 2 }}>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Дата заказа:</strong> {formatDate(detailsDialog.order.date)}
-                    </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Статус:</strong>{' '}
-                      <Chip 
-                        label={getStatusLabel(detailsDialog.order.status)} 
-                        color={getStatusColor(detailsDialog.order.status)}
-                        size="small"
-                            sx={{ borderRadius: '6px', fontWeight: 500 }}
-                      />
-                    </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Срок аренды:</strong> {detailsDialog.order.rentalDays} дней
-                    </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Дата возврата:</strong> {formatDate(detailsDialog.order.returnDate)}
-                    </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Сумма заказа:</strong> {detailsDialog.order.totalAmount} ₽
-                    </Typography>
-                      </Box>
-                  </CardContent>
-                </Card>
-                </Grid>
-                
-                {/* Информация о клиенте */}
-                <Grid item xs={12} md={6}>
-                  <Card 
-                    variant="outlined" 
-                    sx={{ 
-                      height: '100%',
-                      borderRadius: '10px',
-                      borderColor: '#e5e7eb'
-                    }}
-                  >
-                  <CardContent>
-                      <Typography 
-                        variant="h6" 
-                        gutterBottom 
-                        sx={{ 
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1
-                        }}
-                      >
-                        <PersonIcon sx={{ color: '#1565c0' }} />
-                      Информация о клиенте
-                    </Typography>
-                      <Box sx={{ mt: 2 }}>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>ФИО:</strong> {detailsDialog.user.firstName} {detailsDialog.user.lastName}
-                    </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Email:</strong> {detailsDialog.user.email}
-                    </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Телефон:</strong> {detailsDialog.user.phone || 'Не указан'}
-                    </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                      <strong>Город:</strong> {detailsDialog.user.city || 'Не указан'}
-                    </Typography>
-                      </Box>
-                  </CardContent>
-                </Card>
-                </Grid>
-              </Grid>
-              
-              {/* Товары в заказе */}
-              <Card 
-                variant="outlined" 
-                sx={{ 
-                  borderRadius: '10px',
-                  borderColor: '#e5e7eb'
-                }}
-              >
-                <CardContent>
-                  <Typography 
-                    variant="h6" 
-                    gutterBottom 
-                    sx={{ 
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1
-                    }}
-                  >
-                    <ShoppingBagIcon sx={{ color: '#1565c0' }} />
-                    Товары в заказе
-                  </Typography>
-                  <TableContainer sx={{ mt: 2 }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow sx={{ 
-                          backgroundColor: '#f8fafc',
-                          '& th': { fontWeight: 600, color: '#475569' } 
-                        }}>
-                          <TableCell>Наименование</TableCell>
-                          <TableCell align="right">Количество</TableCell>
-                          <TableCell align="right">Цена</TableCell>
-                          <TableCell align="right">Сумма</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {detailsDialog.order.items.map((item) => (
-                          <TableRow key={item.id} sx={{ 
-                            '& td': { py: 1.5 },
-                            borderBottom: '1px solid #e5e7eb'
-                          }}>
-                            <TableCell>{item.name}</TableCell>
-                            <TableCell align="right">{item.quantity}</TableCell>
-                            <TableCell align="right">{item.price} ₽</TableCell>
-                            <TableCell align="right">{item.price * item.quantity} ₽</TableCell>
-                          </TableRow>
-                        ))}
-                        <TableRow sx={{ 
-                          '& td': { py: 1.5, fontWeight: 600 },
-                          backgroundColor: '#f8fafc'
-                        }}>
-                          <TableCell colSpan={3} align="right">
-                            <strong>Итого:</strong>
-                          </TableCell>
-                          <TableCell align="right">
-                            <strong>{detailsDialog.order.totalAmount} ₽</strong>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
-            </Stack>
           )}
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          {detailsDialog.order && renderOrderDetails(detailsDialog.order)}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button 
-            onClick={handleCloseDetails}
-            variant="outlined"
-            sx={{ borderRadius: '8px', textTransform: 'none', px: 3 }}
+            onClick={handleCloseDetails} 
+            variant="contained"
+            color="primary"
           >
             Закрыть
           </Button>
         </DialogActions>
       </Dialog>
       
-      {/* Диалог для изменения статуса заказа */}
+      {/* Диалог изменения статуса заказа */}
       <Dialog
         open={statusDialog.open}
         onClose={handleCloseStatusDialog}
-        PaperProps={{
-          sx: { borderRadius: '12px' }
-        }}
       >
-        <DialogTitle>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Изменить статус заказа
-          </Typography>
-        </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ mb: 3 }}>
-            Выберите новый статус для заказа №{statusDialog.order?.id}
-          </DialogContentText>
-          <FormControl fullWidth variant="outlined">
-            <InputLabel id="status-select-label">Статус</InputLabel>
+        <DialogTitle>Изменить статус заказа</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth sx={{ mt: 1 }}>
+            <InputLabel>Статус</InputLabel>
             <Select
-              labelId="status-select-label"
               value={statusDialog.status}
-              onChange={handleStatusChange}
               label="Статус"
-              sx={{ borderRadius: '8px' }}
+              onChange={handleStatusChange}
             >
-              <MenuItem value="active">В аренде</MenuItem>
+              <MenuItem value="new">Новый</MenuItem>
+              <MenuItem value="processing">В обработке</MenuItem>
+              <MenuItem value="delivered">Доставлен</MenuItem>
               <MenuItem value="completed">Завершен</MenuItem>
               <MenuItem value="cancelled">Отменен</MenuItem>
             </Select>
           </FormControl>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button 
-            onClick={handleCloseStatusDialog}
-            sx={{ borderRadius: '8px', textTransform: 'none' }}
-          >
-            Отмена
-          </Button>
-          <Button 
-            onClick={handleChangeStatus} 
-            variant="contained"
-            sx={{ borderRadius: '8px', textTransform: 'none' }}
-          >
+        <DialogActions>
+          <Button onClick={handleCloseStatusDialog}>Отмена</Button>
+          <Button onClick={handleChangeStatus} color="primary">
             Сохранить
           </Button>
         </DialogActions>
       </Dialog>
       
-      <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={handleCloseSnackbar}>
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
+      {/* Уведомления */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity}
+          variant="filled"
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 };
 

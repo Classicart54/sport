@@ -1,0 +1,50 @@
+.checkout-success-page {
+  padding: 60px 0;
+  background-color: #f9fafb;
+  min-height: calc(100vh - 120px);
+  
+  &__content {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 40px 30px;
+    text-align: center;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  &__icon {
+    margin-bottom: 20px;
+    
+    svg {
+      font-size: 60px;
+      color: #4caf50;
+    }
+  }
+  
+  &__title {
+    margin-bottom: 20px;
+    color: #333;
+    font-weight: 600;
+  }
+  
+  &__message {
+    color: #555;
+    margin-bottom: 15px;
+    font-size: 18px;
+  }
+  
+  &__info {
+    color: #777;
+    margin-bottom: 30px;
+  }
+  
+  &__button {
+    padding: 10px 25px !important;
+    font-weight: 500 !important;
+    background-color: #1976d2 !important;
+    
+    &:hover {
+      background-color: #1565c0 !important;
+    }
+  }
+} 

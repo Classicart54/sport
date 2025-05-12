@@ -289,21 +289,47 @@ const CategoryPage: FC<CategoryPageProps> = () => {
           На главную
         </Button>
         
-        <Grid container spacing={3}>
-          {/* Боковая панель фильтров для десктопа */}
-          <Grid item xs={12} md={3} lg={3} xl={2} className="category-page__sidebar">
-            <Paper elevation={1} className="category-page__filters">
+        {/* Мобильная кнопка открытия фильтров */}
+        <Box className="category-page__mobile-filter-button" sx={{ display: { xs: 'block', sm: 'none' }, mb: 2 }}>
+          <Button 
+            variant="outlined"
+            fullWidth
+            startIcon={<FilterListIcon />}
+            onClick={toggleFilters}
+          >
+            Фильтры
+          </Button>
+        </Box>
+        
+        <Box sx={{ display: 'flex', flexDirection: { xs: filtersOpen ? 'row' : 'row-reverse', sm: 'row' }, gap: 3 }}>
+          {/* Боковая панель фильтров */}
+          <Box className="category-page__sidebar" sx={{ 
+            width: { xs: '240px', md: '260px', lg: '250px' }, 
+            flexShrink: 0,
+            display: { xs: filtersOpen ? 'block' : 'none', sm: 'block' } 
+          }}>
+            <Paper elevation={0} className="category-page__filters">
               <Box className="category-page__filters-header">
                 <Typography variant="h6" className="category-page__filters-title">
                   <FilterListIcon /> Фильтры
                 </Typography>
-                <Button 
-                  variant="text" 
-                  size="small" 
-                  onClick={handleFilterReset}
-                >
-                  Сбросить
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button 
+                    variant="text" 
+                    size="small" 
+                    onClick={handleFilterReset}
+                  >
+                    Сбросить
+                  </Button>
+                  {/* Кнопка закрытия на мобильных */}
+                  <IconButton 
+                    size="small" 
+                    onClick={toggleFilters}
+                    sx={{ display: { xs: 'flex', sm: 'none' } }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Box>
               </Box>
               
               <Divider />
@@ -496,283 +522,46 @@ const CategoryPage: FC<CategoryPageProps> = () => {
                 </FormGroup>
               </Box>
             </Paper>
-          </Grid>
+          </Box>
           
           {/* Основной контент с товарами */}
-          <Grid item xs={12} md={9} lg={9} xl={10}>
-            <Box className="category-page__content">
-              {/* Мобильная кнопка фильтров */}
-              <Box className="category-page__mobile-filters">
-                <Button 
-                  variant="outlined"
-                  startIcon={<TuneIcon />}
-                  onClick={toggleFilters}
-                  className="category-page__mobile-filters-button"
-                >
-                  Фильтры
-                </Button>
-                
-                <FormControl variant="outlined" size="small" className="category-page__sort-select">
-                  <InputLabel id="sort-select-label">Сортировка</InputLabel>
-                  <Select
-                    labelId="sort-select-label"
-                    value={filters.sortBy}
-                    onChange={handleSortChange}
-                    label="Сортировка"
-                  >
-                    <MenuItem value="default">По умолчанию</MenuItem>
-                    <MenuItem value="priceAsc">По цене (сначала дешевле)</MenuItem>
-                    <MenuItem value="priceDesc">По цене (сначала дороже)</MenuItem>
-                    <MenuItem value="nameAsc">По названию (А-Я)</MenuItem>
-                    <MenuItem value="nameDesc">По названию (Я-А)</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
-              
-              {/* Мобильные фильтры (выдвижная панель) */}
-              {filtersOpen && (
-                <Box className="category-page__mobile-filters-drawer">
-                  <Box className="category-page__mobile-filters-header">
-                    <Typography variant="h6">Фильтры</Typography>
-                    <IconButton onClick={toggleFilters}>
-                      <CloseIcon />
-                    </IconButton>
-                  </Box>
-                  
-                  <Divider />
-                  
-                  <Box className="category-page__filter-section">
-                    <Typography variant="subtitle2" gutterBottom>
-                      Цена (₽ в день)
-                    </Typography>
-                    <Box className="category-page__price-inputs">
-                      <TextField
-                        variant="outlined"
-                        size="small"
-                        label="От"
-                        type="number"
-                        value={filters.priceRange[0]}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          if (!isNaN(value) && value >= minPrice) {
-                            setFilters(prev => ({
-                              ...prev,
-                              priceRange: [value, prev.priceRange[1]]
-                            }));
-                          }
-                        }}
-                        InputProps={{
-                          endAdornment: <InputAdornment position="end">₽</InputAdornment>,
-                        }}
-                      />
-                      <TextField
-                        variant="outlined"
-                        size="small"
-                        label="До"
-                        type="number"
-                        value={filters.priceRange[1]}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          if (!isNaN(value) && value <= maxPrice) {
-                            setFilters(prev => ({
-                              ...prev,
-                              priceRange: [prev.priceRange[0], value]
-                            }));
-                          }
-                        }}
-                        InputProps={{
-                          endAdornment: <InputAdornment position="end">₽</InputAdornment>,
-                        }}
-                      />
-                    </Box>
-                    <Slider
-                      value={filters.priceRange}
-                      onChange={handlePriceChange}
-                      valueLabelDisplay="auto"
-                      min={minPrice}
-                      max={maxPrice}
-                      valueLabelFormat={(value) => `${value} ₽`}
-                    />
-                  </Box>
-                  
-                  <Divider />
-                  
-                  <Box className="category-page__filter-section">
-                    <Typography variant="subtitle2" gutterBottom>
-                      Сезон
-                    </Typography>
-                    <RadioGroup
-                      name="season-mobile"
-                      value={filters.season}
-                      onChange={handleSeasonChange}
-                    >
-                      <FormControlLabel 
-                        value="all" 
-                        control={<Radio size="small" />} 
-                        label="Любой сезон" 
-                      />
-                      <FormControlLabel 
-                        value="summer" 
-                        control={<Radio size="small" />} 
-                        label={
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <WbSunnyIcon fontSize="small" sx={{ mr: 1, color: '#FFB900' }} />
-                            <Typography variant="body2">Летний</Typography>
-                          </Box>
-                        } 
-                      />
-                      <FormControlLabel 
-                        value="winter" 
-                        control={<Radio size="small" />} 
-                        label={
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <AcUnitIcon fontSize="small" sx={{ mr: 1, color: '#2196F3' }} />
-                            <Typography variant="body2">Зимний</Typography>
-                          </Box>
-                        } 
-                      />
-                    </RadioGroup>
-                  </Box>
-                  
-                  <Divider />
-                  
-                  <Box className="category-page__filter-section">
-                    <Typography variant="subtitle2" gutterBottom>
-                      Тип оборудования
-                    </Typography>
-                    <Box className="category-page__equipment-types">
-                      <Chip
-                        icon={<DirectionsRunIcon />}
-                        label="Кардио"
-                        clickable
-                        color={filters.equipmentType.includes('cardio') ? 'primary' : 'default'}
-                        onClick={() => handleEquipmentTypeChange('cardio')}
-                        className="category-page__equipment-chip"
-                      />
-                      <Chip
-                        icon={<FitnessCenterIcon />}
-                        label="Силовое"
-                        clickable
-                        color={filters.equipmentType.includes('strength') ? 'primary' : 'default'}
-                        onClick={() => handleEquipmentTypeChange('strength')}
-                        className="category-page__equipment-chip"
-                      />
-                      <Chip
-                        icon={<SportsTennisIcon />}
-                        label="Растяжка"
-                        clickable
-                        color={filters.equipmentType.includes('flexibility') ? 'primary' : 'default'}
-                        onClick={() => handleEquipmentTypeChange('flexibility')}
-                        className="category-page__equipment-chip"
-                      />
-                      <Chip
-                        label="Восстановление"
-                        clickable
-                        color={filters.equipmentType.includes('recovery') ? 'primary' : 'default'}
-                        onClick={() => handleEquipmentTypeChange('recovery')}
-                        className="category-page__equipment-chip"
-                      />
-                    </Box>
-                  </Box>
-                  
-                  <Divider />
-                  
-                  <Box className="category-page__filter-section">
-                    <Typography variant="subtitle2" gutterBottom>
-                      Наличие и предложения
-                    </Typography>
-                    <FormGroup>
-                      <FormControlLabel 
-                        control={
-                          <Checkbox 
-                            checked={filters.availability} 
-                            onChange={handleCheckboxChange('availability')} 
-                          />
-                        } 
-                        label="В наличии" 
-                      />
-                      <FormControlLabel 
-                        control={
-                          <Checkbox 
-                            checked={filters.newArrivals} 
-                            onChange={handleCheckboxChange('newArrivals')} 
-                          />
-                        } 
-                        label="Новинки" 
-                      />
-                      <FormControlLabel 
-                        control={
-                          <Checkbox 
-                            checked={filters.popular} 
-                            onChange={handleCheckboxChange('popular')} 
-                          />
-                        } 
-                        label="Популярные" 
-                      />
-                      <FormControlLabel 
-                        control={
-                          <Checkbox 
-                            checked={filters.promotion} 
-                            onChange={handleCheckboxChange('promotion')} 
-                          />
-                        } 
-                        label="Акции" 
-                      />
-                    </FormGroup>
-                  </Box>
-                  
-                  <Box className="category-page__mobile-filters-footer">
-                    <Button 
-                      variant="text" 
-                      onClick={handleFilterReset}
-                    >
-                      Сбросить
-                    </Button>
-                    <Button 
-                      variant="contained" 
-                      onClick={toggleFilters}
-                    >
-                      Применить
-                    </Button>
-                  </Box>
-                </Box>
-              )}
+          <Box sx={{ flex: 1 }}>
+            <Box className="category-page__content" sx={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)' }}>
+              {/* Мобильная кнопка фильтров скрыта */}
               
               {/* Результаты фильтрации */}
               <Box className="category-page__results">
                 {/* Верхняя панель с сортировкой и заголовком */}
-                <Box className="category-page__results-header">
-                  <Box className="category-page__results-header-content">
-                    <FormControl variant="outlined" size="small" className="category-page__desktop-sort">
-                      <InputLabel id="desktop-sort-label">
+                <Box className="category-page__results-header" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h5" className="category-page__title">
+                    {category.title} ({filteredProducts.length})
+                  </Typography>
+                  
+                  <FormControl variant="outlined" size="small" className="category-page__desktop-sort">
+                    <InputLabel id="desktop-sort-label">
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <SortIcon fontSize="small" sx={{ mr: 0.5 }} />
+                        Сортировка
+                      </Box>
+                    </InputLabel>
+                    <Select
+                      labelId="desktop-sort-label"
+                      value={filters.sortBy}
+                      onChange={handleSortChange}
+                      label={
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <SortIcon fontSize="small" sx={{ mr: 0.5 }} />
                           Сортировка
                         </Box>
-                      </InputLabel>
-                      <Select
-                        labelId="desktop-sort-label"
-                        value={filters.sortBy}
-                        onChange={handleSortChange}
-                        label={
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <SortIcon fontSize="small" sx={{ mr: 0.5 }} />
-                            Сортировка
-                          </Box>
-                        }
-                      >
-                        <MenuItem value="default">По умолчанию</MenuItem>
-                        <MenuItem value="priceAsc">По цене (сначала дешевле)</MenuItem>
-                        <MenuItem value="priceDesc">По цене (сначала дороже)</MenuItem>
-                        <MenuItem value="nameAsc">По названию (А-Я)</MenuItem>
-                        <MenuItem value="nameDesc">По названию (Я-А)</MenuItem>
-                      </Select>
-                    </FormControl>
-                    
-                    <Typography variant="h5" className="category-page__title">
-                      {category.title} ({filteredProducts.length})
-                    </Typography>
-                  </Box>
+                      }
+                    >
+                      <MenuItem value="default">По умолчанию</MenuItem>
+                      <MenuItem value="priceAsc">По цене (сначала дешевле)</MenuItem>
+                      <MenuItem value="priceDesc">По цене (сначала дороже)</MenuItem>
+                      <MenuItem value="nameAsc">По названию (А-Я)</MenuItem>
+                      <MenuItem value="nameDesc">По названию (Я-А)</MenuItem>
+                    </Select>
+                  </FormControl>
                 </Box>
                 
                 {/* Отображение выбранных фильтров */}
@@ -913,8 +702,8 @@ const CategoryPage: FC<CategoryPageProps> = () => {
                 </Box>
               </Box>
             </Box>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Container>
     </Box>
   );

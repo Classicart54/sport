@@ -1,60 +1,57 @@
-import React, { useEffect } from 'react';
-import { Box, Typography, IconButton, Paper } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { Snackbar, Alert, AlertTitle, Typography, Box, IconButton } from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import './CartNotification.scss';
 
 interface CartNotificationProps {
   open: boolean;
   onClose: () => void;
-  productName: string;
+  productName: string | null;
 }
 
 const CartNotification: React.FC<CartNotificationProps> = ({ open, onClose, productName }) => {
-  // Автоматически закрываем уведомление через 3 секунды
-  useEffect(() => {
-    if (open) {
-      const timer = setTimeout(() => {
-        onClose();
-      }, 3000);
-      
-      return () => {
-        clearTimeout(timer);
-      };
-    }
-  }, [open, onClose]);
+  const navigate = useNavigate();
 
-  if (!open) {
-    return null;
-  }
+  const handleGoToCart = () => {
+    navigate('/cart');
+    onClose();
+  };
 
   return (
-    <Paper className="cart-notification">
-      <Box className="cart-notification__content">
-        <CheckCircleOutlineIcon className="cart-notification__icon" />
-        <Box className="cart-notification__text">
-          <Typography variant="body1" className="cart-notification__title">
-            Товар добавлен в корзину
-          </Typography>
-          <Typography variant="body2" className="cart-notification__product-name">
+    <Snackbar
+      open={open}
+      autoHideDuration={4000}
+      onClose={onClose}
+      anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      className="cart-notification"
+    >
+      <Alert 
+        severity="success" 
+        variant="filled"
+        onClose={onClose}
+        sx={{ width: '100%', alignItems: 'center' }}
+      >
+        <AlertTitle sx={{ mb: 0.5, fontWeight: 'bold' }}>Товар добавлен!</AlertTitle>
+        {productName && (
+          <Typography variant="body2" sx={{ mb: 1 }}>
             {productName}
           </Typography>
-        </Box>
-        <IconButton 
-          size="small" 
-          className="cart-notification__close"
-          onClick={onClose}
+        )}
+        <Typography 
+          component="span" 
+          onClick={handleGoToCart}
+          sx={{ 
+            cursor: 'pointer', 
+            textDecoration: 'underline', 
+            fontSize: '0.85rem',
+            fontWeight: 'medium'
+          }}
         >
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </Box>
-      <Box className="cart-notification__actions">
-        <Link to="/cart" className="cart-notification__link" onClick={onClose}>
           Перейти в корзину
-        </Link>
-      </Box>
-    </Paper>
+        </Typography>
+      </Alert>
+    </Snackbar>
   );
 };
 
