@@ -113,6 +113,10 @@
     margin-bottom: 2rem !important;
     color: #444;
     line-height: 1.6 !important;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    white-space: pre-line;
   }
   
   &__add-button {

@@ -4,7 +4,6 @@ import {
   Box, 
   Typography, 
   Divider, 
-  IconButton,
   Card,
   CardContent 
 } from '@mui/material';
@@ -12,9 +11,6 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import FacebookIcon from '@mui/icons-material/Facebook';
-import TwitterIcon from '@mui/icons-material/Twitter';
-import InstagramIcon from '@mui/icons-material/Instagram';
 import './ContactsPage.scss';
 
 const ContactsPage: FC = () => {
@@ -49,7 +45,7 @@ const ContactsPage: FC = () => {
                       Адрес
                     </Typography>
                     <Typography variant="body2" className="contacts-page__info-text">
-                      г. Новосибирск, ул. Спортивная, д. 42
+                      г. Новосибирск, ул. Спортивная, д. 1
                     </Typography>
                   </Box>
                 </Box>
@@ -61,7 +57,7 @@ const ContactsPage: FC = () => {
                       Телефон
                     </Typography>
                     <Typography variant="body2" className="contacts-page__info-text">
-                      +7 (383) 123-45-67
+                      +7 (999) 123-45-67
                     </Typography>
                   </Box>
                 </Box>
@@ -85,30 +81,12 @@ const ContactsPage: FC = () => {
                       Время работы
                     </Typography>
                     <Typography variant="body2" className="contacts-page__info-text">
-                      Пн-Пт: 9:00 - 20:00
+                      Пн-Пт: 9:00 - 18:00
                     </Typography>
                     <Typography variant="body2" className="contacts-page__info-text">
-                      Сб-Вс: 10:00 - 18:00
+                      Сб-Вс: 10:00 - 20:00
                     </Typography>
                   </Box>
-                </Box>
-                
-                <Divider className="contacts-page__divider" />
-                
-                <Typography variant="h6" className="contacts-page__social-title">
-                  Мы в социальных сетях
-                </Typography>
-                
-                <Box className="contacts-page__social-links">
-                  <IconButton color="primary" aria-label="facebook">
-                    <FacebookIcon />
-                  </IconButton>
-                  <IconButton color="primary" aria-label="twitter">
-                    <TwitterIcon />
-                  </IconButton>
-                  <IconButton color="primary" aria-label="instagram">
-                    <InstagramIcon />
-                  </IconButton>
                 </Box>
               </CardContent>
             </Card>
@@ -142,10 +120,10 @@ const ContactsPage: FC = () => {
                     Как добраться
                   </Typography>
                   <Typography variant="body2">
-                    От метро "Площадь Ленина" - автобусы 1, 5, 17 до остановки "Спортивная".
+                    От метро "Спортивная" - 5 минут пешком.
                   </Typography>
                   <Typography variant="body2">
-                    Парковка бесплатная для клиентов SportTech (до 3-х часов).
+                    Парковка бесплатная для клиентов (до 2-х часов).
                   </Typography>
                 </Box>
               </CardContent>

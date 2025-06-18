@@ -246,9 +246,14 @@ export const addProduct = (product: Omit<Product, 'id'>): Product => {
     ? Math.max(...products.map(p => p.id)) + 1 
     : 1;
     
-  const newProduct = {
+  const newProduct: Product = {
     id: newProductId,
-    ...product
+    name: product.name,
+    price: product.price,
+    image: product.image,
+    categoryId: product.categoryId,
+    available: product.available,
+    description: product.description
   };
   
   // Добавляем в массив и сохраняем в localStorage
@@ -282,10 +287,13 @@ export const updateProduct = (updatedProduct: Product): Product => {
   }
   
   // Обновляем товар в массиве
-  products[index] = updatedProduct;
+  products[index] = {
+    ...products[index],
+    ...updatedProduct
+  };
   saveProductsInStorage(products);
   
-  return updatedProduct;
+  return products[index];
 };
 
 // Функция для удаления категории

@@ -49,8 +49,6 @@ interface Filters {
   popular: boolean;
   promotion: boolean;
   sortBy: string;
-  season: string;
-  equipmentType: string[];
 }
 
 const CategoryPage: FC<CategoryPageProps> = () => {
@@ -73,8 +71,6 @@ const CategoryPage: FC<CategoryPageProps> = () => {
     popular: false,
     promotion: false,
     sortBy: 'default',
-    season: 'all',
-    equipmentType: []
   });
   
   useEffect(() => {
@@ -143,33 +139,6 @@ const CategoryPage: FC<CategoryPageProps> = () => {
         result = result.filter(product => product.id % 3 === 0);
       }
       
-      // Фильтр по сезону
-      if (filters.season !== 'all') {
-        // Имитация: 
-        // - 'summer' - товары с четным id
-        // - 'winter' - товары с нечетным id
-        if (filters.season === 'summer') {
-          result = result.filter(product => product.id % 2 === 0);
-        } else if (filters.season === 'winter') {
-          result = result.filter(product => product.id % 2 === 1);
-        }
-      }
-      
-      // Фильтр по типу оборудования
-      if (filters.equipmentType.length > 0) {
-        // Имитация: фильтрация по остатку от деления id на 4
-        // 'cardio' - остаток 0, 'strength' - остаток 1, 'flexibility' - остаток 2, 'recovery' - остаток 3
-        result = result.filter(product => {
-          const remainder = product.id % 4;
-          return (
-            (filters.equipmentType.includes('cardio') && remainder === 0) ||
-            (filters.equipmentType.includes('strength') && remainder === 1) ||
-            (filters.equipmentType.includes('flexibility') && remainder === 2) ||
-            (filters.equipmentType.includes('recovery') && remainder === 3)
-          );
-        });
-      }
-      
       // Сортировка
       switch (filters.sortBy) {
         case 'priceAsc':
@@ -219,30 +188,6 @@ const CategoryPage: FC<CategoryPageProps> = () => {
     }));
   };
   
-  const handleSeasonChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFilters(prev => ({
-      ...prev,
-      season: event.target.value
-    }));
-  };
-  
-  const handleEquipmentTypeChange = (type: string) => {
-    setFilters(prev => {
-      const currentTypes = [...prev.equipmentType];
-      if (currentTypes.includes(type)) {
-        return {
-          ...prev,
-          equipmentType: currentTypes.filter(t => t !== type)
-        };
-      } else {
-        return {
-          ...prev,
-          equipmentType: [...currentTypes, type]
-        };
-      }
-    });
-  };
-  
   const handleFilterReset = () => {
     setFilters({
       priceRange: [minPrice, maxPrice],
@@ -251,8 +196,6 @@ const CategoryPage: FC<CategoryPageProps> = () => {
       popular: false,
       promotion: false,
       sortBy: 'default',
-      season: 'all',
-      equipmentType: []
     });
   };
   
@@ -392,90 +335,6 @@ const CategoryPage: FC<CategoryPageProps> = () => {
               
               <Box className="category-page__filter-section">
                 <Typography variant="subtitle2" gutterBottom>
-                  Сезон
-                </Typography>
-                <RadioGroup
-                  name="season"
-                  value={filters.season}
-                  onChange={handleSeasonChange}
-                >
-                  <FormControlLabel 
-                    value="all" 
-                    control={<Radio size="small" />} 
-                    label={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography variant="body2">Любой сезон</Typography>
-                      </Box>
-                    } 
-                  />
-                  <FormControlLabel 
-                    value="summer" 
-                    control={<Radio size="small" />} 
-                    label={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <WbSunnyIcon fontSize="small" sx={{ mr: 1, color: '#FFB900' }} />
-                        <Typography variant="body2">Летний</Typography>
-                      </Box>
-                    } 
-                  />
-                  <FormControlLabel 
-                    value="winter" 
-                    control={<Radio size="small" />} 
-                    label={
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <AcUnitIcon fontSize="small" sx={{ mr: 1, color: '#2196F3' }} />
-                        <Typography variant="body2">Зимний</Typography>
-                      </Box>
-                    } 
-                  />
-                </RadioGroup>
-              </Box>
-              
-              <Divider />
-              
-              <Box className="category-page__filter-section">
-                <Typography variant="subtitle2" gutterBottom>
-                  Тип оборудования
-                </Typography>
-                <Box className="category-page__equipment-types">
-                  <Chip
-                    icon={<DirectionsRunIcon />}
-                    label="Кардио"
-                    clickable
-                    color={filters.equipmentType.includes('cardio') ? 'primary' : 'default'}
-                    onClick={() => handleEquipmentTypeChange('cardio')}
-                    className="category-page__equipment-chip"
-                  />
-                  <Chip
-                    icon={<FitnessCenterIcon />}
-                    label="Силовое"
-                    clickable
-                    color={filters.equipmentType.includes('strength') ? 'primary' : 'default'}
-                    onClick={() => handleEquipmentTypeChange('strength')}
-                    className="category-page__equipment-chip"
-                  />
-                  <Chip
-                    icon={<SportsTennisIcon />}
-                    label="Растяжка"
-                    clickable
-                    color={filters.equipmentType.includes('flexibility') ? 'primary' : 'default'}
-                    onClick={() => handleEquipmentTypeChange('flexibility')}
-                    className="category-page__equipment-chip"
-                  />
-                  <Chip
-                    label="Восстановление"
-                    clickable
-                    color={filters.equipmentType.includes('recovery') ? 'primary' : 'default'}
-                    onClick={() => handleEquipmentTypeChange('recovery')}
-                    className="category-page__equipment-chip"
-                  />
-                </Box>
-              </Box>
-              
-              <Divider />
-              
-              <Box className="category-page__filter-section">
-                <Typography variant="subtitle2" gutterBottom>
                   Наличие и предложения
                 </Typography>
                 <FormGroup>
@@ -565,9 +424,7 @@ const CategoryPage: FC<CategoryPageProps> = () => {
                 </Box>
                 
                 {/* Отображение выбранных фильтров */}
-                {(filters.availability || filters.newArrivals || filters.popular || filters.promotion || 
-                  filters.season !== 'all' || filters.equipmentType.length > 0 ||
-                  filters.priceRange[0] > minPrice || filters.priceRange[1] < maxPrice) && (
+                {(filters.availability || filters.newArrivals || filters.popular || filters.promotion) && (
                   <Box className="category-page__active-filters">
                     <Typography variant="body2" className="category-page__active-filters-label">
                       Активные фильтры:
@@ -584,39 +441,6 @@ const CategoryPage: FC<CategoryPageProps> = () => {
                         </IconButton>
                       </Box>
                     ) : null}
-                    
-                    {filters.season !== 'all' && (
-                      <Box component="span" className="category-page__filter-tag">
-                        Сезон: {filters.season === 'summer' ? 'Летний' : 'Зимний'}
-                        <IconButton 
-                          size="small" 
-                          onClick={() => setFilters(prev => ({...prev, season: 'all'}))}
-                        >
-                          <CloseIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    )}
-                    
-                    {filters.equipmentType.map(type => {
-                      let label = '';
-                      switch (type) {
-                        case 'cardio': label = 'Кардио'; break;
-                        case 'strength': label = 'Силовое'; break;
-                        case 'flexibility': label = 'Растяжка'; break;
-                        case 'recovery': label = 'Восстановление'; break;
-                      }
-                      return (
-                        <Box component="span" className="category-page__filter-tag" key={type}>
-                          {label}
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleEquipmentTypeChange(type)}
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      );
-                    })}
                     
                     {filters.availability && (
                       <Box component="span" className="category-page__filter-tag">

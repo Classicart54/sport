@@ -24,17 +24,19 @@ const BestRatedProducts: FC = () => {
       } else {
         setIsRefreshing(true);
       }
-      
+      // Получаем все товары
+      const allProducts = await apiService.products.getAll();
       // Получаем товары с лучшим рейтингом
       const bestRatedProducts = await apiService.products.getBestRatedProducts(4);
-      console.log('Получены товары с лучшим рейтингом:', bestRatedProducts);
-      
-      if (Array.isArray(bestRatedProducts)) {
-        setProducts(bestRatedProducts);
-        setError(null);
-      } else {
-        throw new Error('Неверный формат данных');
+      // Добавляем недостающие товары без рейтинга
+      let result = bestRatedProducts;
+      if (bestRatedProducts.length < 4) {
+        const bestIds = new Set(bestRatedProducts.map(p => p.id));
+        const additional = allProducts.filter(p => !bestIds.has(p.id)).slice(0, 4 - bestRatedProducts.length);
+        result = [...bestRatedProducts, ...additional];
       }
+      setProducts(result);
+      setError(null);
     } catch (err) {
       console.error('Ошибка при загрузке лучших товаров:', err);
       setError('Не удалось загрузить рекомендуемые товары');
@@ -88,17 +90,6 @@ const BestRatedProducts: FC = () => {
             <Typography variant="body1" className="best-rated__subtitle">
               Выбор наших клиентов на основе отзывов
             </Typography>
-            <Tooltip title="Обновить рейтинг">
-              <Button 
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                color="primary"
-                size="small"
-                sx={{ minWidth: 'auto', p: 0.5 }}
-              >
-                <RefreshIcon fontSize="small" sx={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
-              </Button>
-            </Tooltip>
           </Box>
         </Box>
         

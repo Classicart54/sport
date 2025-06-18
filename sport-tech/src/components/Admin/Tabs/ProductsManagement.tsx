@@ -81,6 +81,7 @@ interface ProductFormData {
   image: string;
   categoryId: number;
   available: boolean;
+  description?: string;
 }
 
 const ProductsManagement: React.FC = () => {
@@ -103,7 +104,8 @@ const ProductsManagement: React.FC = () => {
     price: 0, 
     image: '', 
     categoryId: 1,
-    available: true
+    available: true,
+    description: ''
   });
   
   // Состояния для редактирования
@@ -275,7 +277,8 @@ const ProductsManagement: React.FC = () => {
       price: product.price,
       image: product.image,
       categoryId: product.categoryId,
-      available: product.available !== undefined ? product.available : true
+      available: product.available !== undefined ? product.available : true,
+      description: product.description || ''
     });
     setCurrentProductId(product.id);
     setEditProductModalOpen(true);
@@ -317,7 +320,8 @@ const ProductsManagement: React.FC = () => {
         price: productForm.price,
         image: productForm.image,
         categoryId: productForm.categoryId,
-        available: productForm.available
+        available: productForm.available,
+        description: productForm.description
       });
       
       // Очистка формы и закрытие модального окна
@@ -326,7 +330,8 @@ const ProductsManagement: React.FC = () => {
         price: 0, 
         image: '', 
         categoryId: categories[0]?.id || 1,
-        available: true 
+        available: true,
+        description: ''
       });
       handleCloseProductModal();
       
@@ -359,7 +364,8 @@ const ProductsManagement: React.FC = () => {
         price: productForm.price,
         image: productForm.image,
         categoryId: productForm.categoryId,
-        available: productForm.available
+        available: productForm.available,
+        description: productForm.description
       });
       
       // Очистка формы и закрытие модального окна
@@ -826,6 +832,18 @@ const ProductsManagement: React.FC = () => {
               helperText="Укажите прямую ссылку на изображение"
             />
             
+            <TextField
+              margin="normal"
+              fullWidth
+              id="description"
+              label="Описание товара"
+              name="description"
+              value={productForm.description}
+              onChange={handleProductFormChange}
+              multiline
+              rows={4}
+            />
+            
             <FormControl component="fieldset" margin="normal">
               <FormControlLabel
                 control={
@@ -925,6 +943,18 @@ const ProductsManagement: React.FC = () => {
               value={productForm.image}
               onChange={handleProductFormChange}
               helperText="Укажите прямую ссылку на изображение"
+            />
+            
+            <TextField
+              margin="normal"
+              fullWidth
+              id="description"
+              label="Описание товара"
+              name="description"
+              value={productForm.description}
+              onChange={handleProductFormChange}
+              multiline
+              rows={4}
             />
             
             <FormControl component="fieldset" margin="normal">

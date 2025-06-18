@@ -38,10 +38,11 @@ import {
   Person as PersonIcon,
   LocalShipping as ShippingIcon,
   Search as SearchIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../../context/AuthContext';
-import { useOrder, Order } from '../../../context/OrderContext';
+import { useOrders, OrderData } from '../../../context/OrdersContext';
 
 // Получение статуса заказа для отображения
 const getStatusLabel = (status: string): string => {
@@ -101,18 +102,23 @@ const formatDate = (dateString: string): string => {
 // Типы для диалогов
 type DetailsDialogState = {
   open: boolean;
-  order: Order | null;
+  order: OrderData | null;
 };
 
 type StatusDialogState = {
   open: boolean;
-  order: Order | null;
-  status: Order['status'];
+  order: OrderData | null;
+  status: OrderData['status'];
+};
+
+type DeleteDialogState = {
+  open: boolean;
+  order: OrderData | null;
 };
 
 const OrdersManagement: React.FC = () => {
   const { auth, getAllUsers } = useAuth();
-  const { orders, getAllOrders, updateOrderStatus, getUserOrders, resetOrdersToMock } = useOrder();
+  const { orders, getAllOrders, updateOrderStatus, getOrdersByUserId, deleteOrder } = useOrders();
   
   // Отладочный вывод для проверки наличия заказов
   useEffect(() => {
@@ -133,6 +139,12 @@ const OrdersManagement: React.FC = () => {
     status: 'new'
   });
   
+  // Состояние для диалога удаления заказа
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>({
+    open: false,
+    order: null
+  });
+  
   // Состояние для уведомлений
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -151,10 +163,12 @@ const OrdersManagement: React.FC = () => {
   const filteredOrders = React.useMemo(() => {
     // Сначала получаем все заказы, и только потом фильтруем
     let allOrders = getAllOrders();
+    // Сортируем по дате создания (новые сверху)
+    allOrders = allOrders.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
     // Фильтрация по пользователю
     if (userIdFilter !== null) {
-      return getUserOrders(userIdFilter);
+      return getOrdersByUserId(userIdFilter).slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
     
     // Фильтрация по поисковому запросу
@@ -164,12 +178,12 @@ const OrdersManagement: React.FC = () => {
         order.id.toString().includes(term) || 
         (order.contactInfo?.phone && order.contactInfo.phone.toLowerCase().includes(term)) ||
         (order.contactInfo?.address && order.contactInfo.address.toLowerCase().includes(term)) ||
-        order.items.some(item => item.product?.name && item.product.name.toLowerCase().includes(term))
+        (order.items || []).some(item => item.name && item.name.toLowerCase().includes(term))
       );
     }
     
     return allOrders;
-  }, [getAllOrders, getUserOrders, userIdFilter, searchTerm]);
+  }, [getAllOrders, getOrdersByUserId, userIdFilter, searchTerm]);
   
   // Сброс фильтров
   const handleResetFilters = () => {
@@ -184,7 +198,7 @@ const OrdersManagement: React.FC = () => {
   };
   
   // Открытие диалога деталей заказа
-  const handleOpenDetails = (order: Order) => {
+  const handleOpenDetails = (order: OrderData) => {
     setDetailsDialog({
       open: true,
       order
@@ -200,7 +214,7 @@ const OrdersManagement: React.FC = () => {
   };
   
   // Открытие диалога изменения статуса
-  const handleOpenStatusDialog = (order: Order) => {
+  const handleOpenStatusDialog = (order: OrderData) => {
     setStatusDialog({
       open: true,
       order,
@@ -248,7 +262,7 @@ const OrdersManagement: React.FC = () => {
   const handleStatusChange = (event: SelectChangeEvent) => {
     setStatusDialog({
       ...statusDialog,
-      status: event.target.value as Order['status']
+      status: event.target.value as OrderData['status']
     });
   };
   
@@ -260,14 +274,59 @@ const OrdersManagement: React.FC = () => {
     });
   };
   
+  // Открытие диалога удаления заказа
+  const handleOpenDeleteDialog = (order: OrderData) => {
+    setDeleteDialog({
+      open: true,
+      order
+    });
+  };
+  
+  // Закрытие диалога удаления заказа
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialog({
+      open: false,
+      order: null
+    });
+  };
+  
+  // Удаление заказа
+  const handleDeleteOrder = () => {
+    if (!deleteDialog.order) {
+      handleCloseDeleteDialog();
+      return;
+    }
+    
+    // Удаляем заказ
+    const success = deleteOrder(deleteDialog.order.id);
+    
+    if (success) {
+      setSnackbar({
+        open: true,
+        message: 'Заказ успешно удален',
+        severity: 'success'
+      });
+    } else {
+      setSnackbar({
+        open: true,
+        message: 'Не удалось удалить заказ',
+        severity: 'error'
+      });
+    }
+    
+    handleCloseDeleteDialog();
+  };
+  
   // Рендеринг карточки с информацией о заказе
-  const renderOrderDetails = (order: Order) => {
+  const renderOrderDetails = (order: OrderData) => {
     if (!order) return null;
     
     // Вычисляем правильную итоговую сумму
-    const calculatedTotal = order.items.reduce((total, item) => {
-      return total + (item.product?.price || 0) * (item.quantity || 1) * (item.days || 1);
-    }, 0);
+    const calculatedTotal = order.items && order.items.length > 0
+      ? order.items.reduce((total, item) => {
+          return total + (item.price || 0) * (item.quantity || 1) * (order.rentalDays || 1);
+        }, 0)
+      : 0;
     
     return (
       <Box sx={{ p: 1 }}>
@@ -378,14 +437,14 @@ const OrdersManagement: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {order.items.length > 0 ? (
-                    order.items.map(item => (
+                  {order.items && order.items.length > 0 ? (
+                    (order.items || []).map(item => (
                       <TableRow key={item.id}>
-                        <TableCell>{item.product?.name || 'Товар не найден'}</TableCell>
+                        <TableCell>{item.name || 'Товар не найден'}</TableCell>
                         <TableCell align="center">{item.quantity || 1}</TableCell>
-                        <TableCell align="center">{item.days || 1}</TableCell>
+                        <TableCell align="center">{order.rentalDays || 1}</TableCell>
                         <TableCell align="right">
-                          {(item.product?.price || 0) * (item.quantity || 1) * (item.days || 1)} ₽
+                          {(item.price || 0) * (item.quantity || 1) * (order.rentalDays || 1)} ₽
                         </TableCell>
                       </TableRow>
                     ))
@@ -410,18 +469,6 @@ const OrdersManagement: React.FC = () => {
     return user ? `${user.firstName} ${user.lastName}` : `Пользователь #${userId}`;
   };
   
-  // Обработчик для сброса заказов
-  const handleResetToMockData = () => {
-    if (window.confirm('Вы уверены, что хотите сбросить все заказы к начальным данным? Это действие нельзя отменить.')) {
-      resetOrdersToMock();
-      setSnackbar({
-        open: true,
-        message: 'Заказы успешно сброшены к начальным данным',
-        severity: 'success'
-      });
-    }
-  };
-  
   return (
     <div className="orders-management">
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -433,14 +480,6 @@ const OrdersManagement: React.FC = () => {
             Просмотр и управление заказами клиентов
           </Typography>
         </div>
-        <Button 
-          variant="outlined"
-          color="warning"
-          onClick={handleResetToMockData}
-          title="Сбросить все заказы к начальным данным"
-        >
-          Сбросить данные
-        </Button>
       </Box>
       
       {/* Фильтры */}
@@ -541,8 +580,8 @@ const OrdersManagement: React.FC = () => {
                   <TableCell>{order.contactInfo?.phone || '-'}</TableCell>
                   <TableCell>{order.contactInfo?.address || '-'}</TableCell>
                   <TableCell>
-                    {order.items.length} {order.items.length === 1 ? 'товар' : 
-                    order.items.length < 5 ? 'товара' : 'товаров'}
+                    {(order.items?.length || 0)} {(order.items?.length || 0) === 1 ? 'товар' : 
+                    (order.items?.length || 0) < 5 ? 'товара' : 'товаров'}
                   </TableCell>
                   <TableCell>{order.totalAmount} ₽</TableCell>
                   <TableCell>{formatDate(order.rentalStartDate)}</TableCell>
@@ -571,6 +610,15 @@ const OrdersManagement: React.FC = () => {
                       onClick={() => handleOpenStatusDialog(order)}
                     >
                       Статус
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => handleOpenDeleteDialog(order)}
+                    >
+                      Удалить
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -646,6 +694,25 @@ const OrdersManagement: React.FC = () => {
           <Button onClick={handleCloseStatusDialog}>Отмена</Button>
           <Button onClick={handleChangeStatus} color="primary">
             Сохранить
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Диалог удаления заказа */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={handleCloseDeleteDialog}
+      >
+        <DialogTitle>Удалить заказ</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Вы уверены, что хотите удалить заказ #{deleteDialog.order?.id}?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog}>Отмена</Button>
+          <Button onClick={handleDeleteOrder} color="error">
+            Удалить
           </Button>
         </DialogActions>
       </Dialog>

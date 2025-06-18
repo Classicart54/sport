@@ -154,7 +154,37 @@ export const OrderProvider: React.FC<OrderProviderProps> = ({ children }) => {
       const newOrder = await orderService.create(updatedOrderData as any);
       
       // Обновляем локальное состояние
-      setOrders(prev => [...prev, newOrder]);
+      setOrders(prev => {
+        const updated = [...prev, newOrder];
+        // Сохраняем в основной localStorage для админки
+        try {
+          const adminOrdersRaw = localStorage.getItem('sport_tech_orders_v2');
+          let adminOrders = [];
+          if (adminOrdersRaw) {
+            adminOrders = JSON.parse(adminOrdersRaw);
+          }
+          adminOrders.push({
+            id: newOrder.id,
+            userId: contactInfo.userId || 0,
+            items: newOrder.items.map(item => ({
+              id: item.product.id,
+              name: item.product.name,
+              quantity: item.quantity,
+              price: item.product.price
+            })),
+            totalAmount: newOrder.totalAmount,
+            status: newOrder.status || 'active',
+            rentalDays: newOrder.items?.[0]?.days || 1,
+            returnDate: '',
+            contactInfo: contactInfo,
+            createdAt: newOrder.createdAt
+          });
+          localStorage.setItem('sport_tech_orders_v2', JSON.stringify(adminOrders));
+        } catch (e) {
+          console.error('Ошибка при синхронизации заказа с админкой:', e);
+        }
+        return updated;
+      });
       
       return newOrder;
     } catch (error) {

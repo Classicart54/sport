@@ -39,6 +39,7 @@ interface OrdersContextType {
   getOrdersByUserId: (userId: number) => OrderData[];
   getAllOrders: () => OrderData[];
   updateOrderStatus: (orderId: number, status: OrderData['status']) => boolean;
+  deleteOrder: (orderId: number) => boolean;
 }
 
 // Ключ для localStorage
@@ -100,21 +101,43 @@ export const OrdersProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   // Обновление статуса заказа
-  const updateOrderStatus = (orderId: number, status: OrderData['status']): boolean => {
+  const updateOrderStatus = (orderId: number, newStatus: OrderData['status']): boolean => {
     try {
-      const orderIndex = orders.findIndex(order => order.id === orderId);
+      const ordersRaw = localStorage.getItem('sport_tech_orders_v2');
+      if (!ordersRaw) return false;
+      
+      const orders = JSON.parse(ordersRaw);
+      const orderIndex = orders.findIndex((order: OrderData) => order.id === orderId);
+      
       if (orderIndex === -1) return false;
-
-      const updatedOrders = [...orders];
-      updatedOrders[orderIndex] = {
-        ...updatedOrders[orderIndex],
-        status
-      };
-
-      setOrders(updatedOrders);
+      
+      orders[orderIndex].status = newStatus;
+      localStorage.setItem('sport_tech_orders_v2', JSON.stringify(orders));
+      setOrders(orders);
+      
       return true;
     } catch (error) {
       console.error('Ошибка при обновлении статуса заказа:', error);
+      return false;
+    }
+  };
+
+  const deleteOrder = (orderId: number): boolean => {
+    try {
+      const ordersRaw = localStorage.getItem('sport_tech_orders_v2');
+      if (!ordersRaw) return false;
+      
+      const orders = JSON.parse(ordersRaw);
+      const updatedOrders = orders.filter((order: OrderData) => order.id !== orderId);
+      
+      if (updatedOrders.length === orders.length) return false;
+      
+      localStorage.setItem('sport_tech_orders_v2', JSON.stringify(updatedOrders));
+      setOrders(updatedOrders);
+      
+      return true;
+    } catch (error) {
+      console.error('Ошибка при удалении заказа:', error);
       return false;
     }
   };
@@ -126,7 +149,8 @@ export const OrdersProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     addOrder,
     getOrdersByUserId,
     getAllOrders,
-    updateOrderStatus
+    updateOrderStatus,
+    deleteOrder
   };
 
   return (

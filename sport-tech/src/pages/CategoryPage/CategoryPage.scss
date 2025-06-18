@@ -107,61 +107,51 @@
   }
   
   &__filters {
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    background: #ffffff;
+    padding: 28px;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(25, 118, 210, 0.08);
+    background: #fff;
     border: none;
     position: sticky;
     top: 20px;
-    height: calc(100vh - 200px);
+    height: auto;
     overflow-y: auto;
-    
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
-    
-    &::-webkit-scrollbar-track {
-      background: #f1f1f1;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
-      border-radius: 10px;
-    }
+    margin-bottom: 24px;
     
     &-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
+      margin-bottom: 22px;
     }
     
     &-title {
       display: flex;
       align-items: center;
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 18px;
+      font-weight: 700;
       color: #1976d2;
-      
+      letter-spacing: 0.5px;
       svg {
-        margin-right: 8px;
+        margin-right: 10px;
       }
     }
   }
   
   &__filter-section {
-    padding: 15px 0;
-    
-    & .MuiTypography-subtitle2 {
-      margin-bottom: 12px;
-      color: #424242;
-      font-weight: 500;
-      font-size: 15px;
+    padding: 20px 0;
+    border-bottom: 1px solid #f0f0f0;
+    &:last-child {
+      border-bottom: none;
     }
-    
+    & .MuiTypography-subtitle2 {
+      margin-bottom: 14px;
+      color: #424242;
+      font-weight: 600;
+      font-size: 16px;
+    }
     & .MuiFormControlLabel-label {
-      font-size: 14px;
+      font-size: 15px;
     }
   }
   
@@ -173,13 +163,11 @@
   
   &__price-inputs {
     display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-    
-    // Улучшаем стиль текстовых полей
+    gap: 14px;
+    margin-bottom: 18px;
     .MuiOutlinedInput-root {
-      border-radius: 8px;
-      
+      border-radius: 10px;
+      background: #f7faff;
       &:hover .MuiOutlinedInput-notchedOutline {
         border-color: #1976d2;
       }
@@ -464,27 +452,17 @@
 // Дополнительные стили для компонентов MUI
 .MuiSlider-root {
   color: #1976d2;
-  margin-top: 5px;
-  height: 4px;
-  
+  height: 6px;
+  border-radius: 3px;
   .MuiSlider-thumb {
-    width: 16px;
-    height: 16px;
-    
-    &:hover, &.Mui-focusVisible {
-      box-shadow: 0 0 0 6px rgba(25, 118, 210, 0.1);
-    }
+    width: 22px;
+    height: 22px;
+    background: #fff;
+    border: 2px solid #1976d2;
+    box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15);
   }
-  
-  .MuiSlider-valueLabel {
-    background-color: #1976d2;
-    border-radius: 6px;
-    padding: 2px 6px;
-    font-size: 11px;
-    
-    &::before {
-      border-color: transparent;
-    }
+  .MuiSlider-rail {
+    opacity: 0.3;
   }
 }
 
@@ -514,4 +492,12 @@
 // Уменьшаем размер шрифта для Radio и Checkbox лейблов
 .MuiFormControlLabel-label {
   font-size: 14px;
+}
+
+// Современные чекбоксы
+.MuiCheckbox-root {
+  color: #1976d2 !important;
+  border-radius: 6px;
+  background: #f7faff;
+  margin-right: 8px;
 } 
